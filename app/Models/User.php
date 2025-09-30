@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Models\DegreeCourses;
 
 class User extends Authenticatable
 {
@@ -18,9 +19,15 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
+      'first_name',
+      'middle_name',
+      'last_name',
+      'email',
+      'role',
+      'facultyID',
+      'campus',
+      'college',
+      'course',
     ];
 
     /**
@@ -44,5 +51,25 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function roles()
+    {
+      return $this->belongsTo(Roles::class, "role_id", "id");
+    }
+
+    public function campuses()
+    {
+      return $this->belongsTo(Campuses::class, "campus_id", "id");
+    }
+
+    public function colleges()
+    {
+      return $this->belongsTo(Colleges::class, "college_id", "id");
+    }
+
+    public function degree_courses()
+    {
+      return $this->belongsTo(DegreeCourses::class, "degree_course_id", "id");
     }
 }
