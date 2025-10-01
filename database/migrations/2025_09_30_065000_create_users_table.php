@@ -20,10 +20,10 @@ public function up(): void
       $table->timestamp('email_verified_at')->nullable();
       
       // foreign key
-      $table->foreignId('role_id')->constrained()->onDelete('cascade');
-      $table->foreignId('campus_id')->constrained()->onDelete('cascade');
-      $table->foreignId('college_id')->constrained()->onDelete('cascade');
-      $table->foreignId('degree_course_id')->constrained()->onDelete('cascade');
+      $table->foreignId('role_id')->constrained('roles')->onDelete('cascade');
+      $table->foreignId('campus_id')->constrained('campuses')->onDelete('cascade');
+      $table->foreignId('college_id')->constrained('colleges')->onDelete('cascade');
+      $table->foreignId('degree_course_id')->nullable()->constrained('degree_courses')->onDelete('cascade');
       $table->timestamps();
     });
 

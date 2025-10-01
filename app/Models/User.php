@@ -23,11 +23,11 @@ class User extends Authenticatable
       'middle_name',
       'last_name',
       'email',
-      'role',
-      'facultyID',
-      'campus',
-      'college',
-      'course',
+      'role_id',
+      // 'facultyID',
+      'campus_id',
+      'college_id',
+      'degree_course_id',
     ];
 
     /**

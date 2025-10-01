@@ -16,7 +16,7 @@ return new class extends Migration
             $table->integer('office_id');
             $table->string('degree_name');
             $table->string('degree_acr');
-            $table->foreignId('college_id')->constrained()->onDelete('cascade');
+            $table->foreignId('college_id')->constrained("colleges")->onDelete('cascade');
             $table->integer('degree_inp_usr_no');
             $table->timestamp('degree_inp_timestamp');
             $table->integer('degree_upd_usr_no');
