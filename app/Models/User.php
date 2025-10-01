@@ -26,7 +26,7 @@ class User extends Authenticatable
       'role_id',
       // 'facultyID',
       'campus_id',
-      'college_id',
+      'office_id',
       'degree_course_id',
     ];
 
@@ -63,9 +63,9 @@ class User extends Authenticatable
       return $this->belongsTo(Campuses::class, "campus_id", "id");
     }
 
-    public function colleges()
+    public function offices()
     {
-      return $this->belongsTo(Colleges::class, "college_id", "id");
+      return $this->belongsTo(Offices::class);
     }
 
     public function degree_courses()

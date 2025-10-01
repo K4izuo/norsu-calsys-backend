@@ -22,8 +22,8 @@ class DegreeCourses extends Model
         "degree_upd_timestamp",
     ];
 
-    public function college()
+    public function office()
     {
-        return $this->belongsTo(Colleges::class, 'college_id', 'id');
+        return $this->hasMany(Offices::class, 'office_id', 'id');
     }
 }

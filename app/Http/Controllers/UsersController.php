@@ -30,11 +30,13 @@ class UsersController extends Controller
         'campus_id' => 'required|integer|max:255',
         'college_id' => 'required|integer|max:255',
         // 'course' => 'required|string|max:255',
-        'degree_course_id' => 'required|integer|max:255',
+        'degree_course_id' => 'nullable|integer|max:255',
       ]);
 
       // Create the user
       $user = User::create($fields);
+
+      $user->load(['roles', 'campuses']);
 
       return response()->json($user, 201);
     }
