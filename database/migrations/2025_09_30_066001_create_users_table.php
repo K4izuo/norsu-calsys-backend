@@ -18,9 +18,11 @@ public function up(): void
       $table->string('last_name');
       $table->string('email')->unique();
       $table->timestamp('email_verified_at')->nullable();
+      $table->string('username')->unique();
+      $table->string('password');
       
       // foreign key
-      $table->foreignId('role_id')->constrained('roles')->onDelete('cascade');
+      // $table->foreignId('role_id')->constrained('roles')->onDelete('cascade');
       $table->foreignId('campus_id')->constrained('campuses')->onDelete('cascade');
       // $table->foreignId('office_id')->constrained('offices')->onDelete('cascade');
       $table->foreignId('degree_course_id')->nullable()->constrained('degree_courses')->onDelete('cascade');

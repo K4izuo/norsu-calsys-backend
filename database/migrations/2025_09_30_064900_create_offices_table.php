@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('office_name');
             $table->string('office_acr');
             // $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('role_id')->constrained('roles')->onDelete('cascade');
+            // $table->foreignId('role_id')->constrained('roles')->onDelete('cascade');
             $table->string('office_pap_code');
             $table->integer('office_pap_no');
             $table->tinyInteger('office_show');
