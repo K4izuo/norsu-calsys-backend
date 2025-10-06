@@ -21,31 +21,34 @@ class UsersController extends Controller
      */
     public function store(Request $request)
     {
-      $fields = $request->validate([
-        'first_name' => 'required|string|max:255',
-        'middle_name' => 'nullable|string|max:255',
-        'last_name' => 'required|string|max:255',
-        'email' => 'required|string|email|max:255|unique:users',
-        // 'role_id' => 'required|integer',
-        // 'facultyID' => 'required|string|max:255|unique:users',
-        'username' => 'required|string|max:255|unique:users',
-        'password' => 'required|string|min:8',
-        'campus_id' => 'required|integer|max:255',
-        'college_id' => 'required|integer|max:255',
-        // 'course' => 'required|string|max:255',
-        'degree_course_id' => 'nullable|integer|max:255',
-      ]);
+        $fields = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'username' => 'nullable|string|max:255|unique:users',
+            'password' => 'nullable|string|min:8',
+            'campus_id' => 'required|integer',
+            'degree_course_id' => 'nullable|integer',
+        ]);
 
-      // Hash the password
-      $fields['password'] = Hash::make($fields['password']);
+        // Only hash password if provided
+        if (!empty($fields['password'])) {
+            $fields['password'] = Hash::make($fields['password']);
+        } else {
+            unset($fields['password']); // optional
+        }
 
-      // Create the user
-      $user = User::create($fields);
+        $user = User::create($fields);
 
-      $user->load(['roles', 'campuses']);
+        $user->load(['roles', 'campuses']); // optional
 
-      return response()->json($user, 201);
+        return response()->json([
+            'message' => 'Student registered successfully',
+            'user' => $user
+        ], 201);
     }
+
 
     /**
      * Display the specified resource.

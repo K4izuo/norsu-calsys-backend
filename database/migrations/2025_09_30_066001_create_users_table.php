@@ -18,8 +18,8 @@ public function up(): void
       $table->string('last_name');
       $table->string('email')->unique();
       $table->timestamp('email_verified_at')->nullable();
-      $table->string('username')->unique();
-      $table->string('password');
+      $table->string('username')->unique()->nullable();
+      $table->string('password')->nullable();
       
       // foreign key
       // $table->foreignId('role_id')->constrained('roles')->onDelete('cascade');

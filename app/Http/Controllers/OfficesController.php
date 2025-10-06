@@ -43,7 +43,7 @@ class OfficesController extends Controller
      */
     public function show(Offices $offices)
     {
-        //
+        $offices = Offices::all();
     }
 
     /**

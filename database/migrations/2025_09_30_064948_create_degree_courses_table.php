@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('degree_courses', function (Blueprint $table) {
             $table->id();
             // $table->integer('office_id');
+            $table->foreignId('office_id')->constrained("offices")->onDelete('cascade');
             $table->string('degree_name');
             $table->string('degree_acr');
-            $table->foreignId('office_id')->constrained("offices")->onDelete('cascade');
             $table->integer('degree_inp_usr_no');
             $table->timestamp('degree_inp_timestamp');
             $table->integer('degree_upd_usr_no');
