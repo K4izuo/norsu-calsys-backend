@@ -12,7 +12,12 @@ class OfficesController extends Controller
      */
     public function index()
     {
-        //
+        return response()->json(
+            Offices::query()
+                ->select('id', 'office_name')
+                ->where('office_is_college', 1)
+                ->get()
+        );
     }
 
     /**

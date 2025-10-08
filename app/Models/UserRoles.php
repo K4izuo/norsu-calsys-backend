@@ -5,25 +5,29 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Notifiable;
-use App\Models\Offices;
 
-class Campuses extends Model
+class UserRoles extends Model
 {
     use HasFactory, Notifiable;
 
-    /**
+     /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
      */
-
     protected $fillable = [
-        "campus_name",
-        "campus_acr",
+        "user_id",
+        "role_id",
+        "full_id",
     ];
 
-    public function offices()
+    public function user()
     {
-        return $this->hasMany(Offices::class);
+        return $this->belongsTo(User::class);
+    }
+
+    public function role()
+    {
+        return $this->belongsTo(Roles::class);
     }
 }

@@ -24,8 +24,9 @@ class User extends Authenticatable
       'middle_name',
       'last_name',
       'email',
-      'role_id',
-      // 'facultyID',
+      'username',      // <-- add this
+      'password',      // <-- add this
+      // 'role_id',
       'campus_id',
       'office_id',
       'degree_course_id',
@@ -54,19 +55,9 @@ class User extends Authenticatable
         ];
     }
 
-    public function roles()
-    {
-      return $this->belongsTo(Roles::class, "role_id", "id");
-    }
-
     public function campuses()
     {
       return $this->belongsTo(Campuses::class, "campus_id", "id");
-    }
-
-    public function offices()
-    {
-      return $this->belongsTo(Offices::class);
     }
 
     public function degree_courses()

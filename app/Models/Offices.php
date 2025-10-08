@@ -25,13 +25,23 @@ class Offices extends Model
         "office_c_is_one",
     ];
 
-    public function user()
+    // public function user()
+    // {
+    //     return $this->belongsTo(User::class);
+    // }
+
+    // public function role()
+    // {
+    //     return $this->belongsTo(Roles::class, "role_id", "id");
+    // }
+
+    public function campus()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Campuses::class);
     }
 
-    public function role()
+    public function degreeCourses()
     {
-        return $this->belongsTo(Roles::class, "role_id", "id");
+        return $this->hasMany(DegreeCourses::class, 'office_id');
     }
 }

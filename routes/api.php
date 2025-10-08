@@ -12,3 +12,7 @@ Route::post('/users/store', [App\Http\Controllers\UsersController::class, 'store
 
 // Campuses routes
 Route::get('/campuses/all', [App\Http\Controllers\CampusesController::class, 'index']);
+
+Route::get('/offices/all', [App\Http\Controllers\OfficesController::class, 'index']);
+
+Route::get('/degreeCourse/{id}', [App\Http\Controllers\DegreeCoursesController::class, 'show']);

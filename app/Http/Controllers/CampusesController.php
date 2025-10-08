@@ -12,8 +12,9 @@ class CampusesController extends Controller
      */
     public function index()
     {
-        $campuses = Campuses::all();
-        return response()->json($campuses);
+        return response()->json(
+            Campuses::query()->select('id', 'campus_name')->get()
+        );
     }
 
     /**

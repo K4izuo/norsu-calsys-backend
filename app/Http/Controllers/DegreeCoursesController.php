@@ -26,9 +26,15 @@ class DegreeCoursesController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(DegreeCourses $degreeCourses)
+    public function show($id)
     {
-        //
+        $degreeCourses = DegreeCourses::where('office_id', $id)->get();
+
+        if ($degreeCourses->isEmpty()) {
+            return response()->json(['message' => 'No degree courses found for this office'], 404);
+        }
+
+        return response()->json($degreeCourses);
     }
 
     /**

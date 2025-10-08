@@ -23,6 +23,6 @@ class DegreeCourses extends Model
 
     public function office()
     {
-        return $this->hasMany(Offices::class, 'office_id', 'id');
+        return $this->belongsTo(Offices::class, 'office_id');
     }
 }
