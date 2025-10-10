@@ -16,3 +16,7 @@ Route::get('/campuses/all', [App\Http\Controllers\CampusesController::class, 'in
 Route::get('/offices/all', [App\Http\Controllers\OfficesController::class, 'index']);
 
 Route::get('/degreeCourse/{id}', [App\Http\Controllers\DegreeCoursesController::class, 'show']);
+
+Route::get('/verify-email', [App\Http\Controllers\EmailVerificationController::class, 'verify']);
+Route::post('/resend-verification', [App\Http\Controllers\EmailVerificationController::class, 'resend'])
+  ->middleware('throttle:5,1');
