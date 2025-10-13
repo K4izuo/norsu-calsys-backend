@@ -24,6 +24,7 @@ public function up(): void
       // foreign key
       // $table->foreignId('role_id')->constrained('roles')->onDelete('cascade');
       $table->foreignId('campus_id')->constrained('campuses')->onDelete('cascade');
+      // $table->foreignIdFor(\App\Models\Campuses::class)->constrained('campuses')->onDelete('cascade');
       // $table->foreignId('office_id')->constrained('offices')->onDelete('cascade');
       $table->foreignId('degree_course_id')->nullable()->constrained('degree_courses')->onDelete('cascade');
       $table->timestamps();

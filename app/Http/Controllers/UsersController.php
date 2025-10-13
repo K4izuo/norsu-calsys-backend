@@ -27,7 +27,7 @@ class UsersController extends Controller
     {
         // Detect user type from request
         $isStudent = $request->has('studentID');
-        $isFaculty = !$isStudent;
+        // $isFaculty = !$isStudent;
 
         // Base validation
         $rules = [
