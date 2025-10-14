@@ -20,3 +20,5 @@ Route::get('/degreeCourse/{id}', [App\Http\Controllers\DegreeCoursesController::
 Route::get('/verify-email', [App\Http\Controllers\EmailVerificationController::class, 'verify']);
 Route::post('/resend-verification', [App\Http\Controllers\EmailVerificationController::class, 'resend'])
   ->middleware('throttle:5,1');
+
+Route::post('/admin/store', [App\Http\Controllers\AdminController::class, 'store']);
