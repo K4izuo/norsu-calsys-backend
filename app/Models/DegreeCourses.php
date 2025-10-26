@@ -10,6 +10,8 @@ class DegreeCourses extends Model
 {
     use HasFactory, Notifiable;
 
+    public $timestamps = false;
+
     protected $fillable = [
         "office_id",
         "degree_name",

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\UserRoles;
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 // use Illuminate\Support\Facades\Hash;
@@ -25,10 +26,6 @@ class UsersController extends Controller
      */
     public function store(Request $request)
     {
-        // Detect user type from request
-        $isStudent = $request->has('studentID');
-        // $isFaculty = !$isStudent;
-
         // Base validation
         $rules = [
             'first_name' => 'required|string|max:255',
@@ -37,19 +34,29 @@ class UsersController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'campus_id' => 'required|integer|exists:campuses,id',
             'degree_course_id' => 'nullable|integer|exists:degree_courses,id',
+            'assignment_id' => 'required|string|max:50|unique:user_roles,full_id',
+            'role' => 'required|string|in:student,faculty,staff',
         ];
-
-        // Specific rules
-        if ($isStudent) {
-            $rules['studentID'] = 'required|string|max:50|unique:user_roles,full_id';
-        } else {
-            $rules['facultyID'] = 'required|string|max:50|unique:user_roles,full_id';
-        }
 
         $validated = $request->validate($rules);
 
+        // Map role name to role_id (assuming: 1=student, 2=faculty, 3=staff)
+        $roleMap = [
+            'student' => 1,
+            'faculty' => 2,
+            'staff' => 3,
+        ];
+
+        $roleId = $roleMap[$validated['role']] ?? null;
+
+        if (!$roleId) {
+            return response()->json([
+                'message' => 'Invalid role provided.',
+            ], 400);
+        }
+
         // --- START TRANSACTION ---
-        $user = DB::transaction(function () use ($validated, $isStudent) {
+        $user = DB::transaction(function () use ($validated, $roleId) {
             $user = User::create([
                 'first_name' => $validated['first_name'],
                 'middle_name' => $validated['middle_name'] ?? null,
@@ -59,13 +66,10 @@ class UsersController extends Controller
                 'degree_course_id' => $validated['degree_course_id'] ?? null,
             ]);
 
-            $roleId = $isStudent ? 1 : 2;
-            $fullId = $isStudent ? $validated['studentID'] : $validated['facultyID'];
-
             UserRoles::create([
                 'user_id' => $user->id,
                 'role_id' => $roleId,
-                'full_id' => $fullId,
+                'full_id' => $validated['assignment_id'],
             ]);
 
             return $user;
@@ -80,8 +84,7 @@ class UsersController extends Controller
             'created_at' => now(),
         ]);
 
-        // Construct verification link (your frontend URL)
-        // $verifyUrl = "https://your-frontend-domain.com/verify-email?token={$token}";
+        // Construct verification link
         $frontend = rtrim(env('FRONTEND_URL', 'http://192.168.0.16:3000'), '/');
         $verifyUrl = "{$frontend}/auth/student/account?token={$token}";
 
@@ -91,7 +94,7 @@ class UsersController extends Controller
             <p>Thank you for registering at <strong>NORSU Calendar System</strong>.</p>
             <p>Please verify your email by clicking the link below:</p>
             <p><a href='{$verifyUrl}' style='color:#16a34a;font-weight:bold;'>Verify Email</a></p>
-            <p>If you didn’t register, you can safely ignore this message.</p>
+            <p>If you didn't register, you can safely ignore this message.</p>
         ";
 
         // Send email using PHPMailer
@@ -109,9 +112,7 @@ class UsersController extends Controller
         }
 
         return response()->json([
-            'message' => $isStudent
-                ? 'Student registration successful! Verification email sent.'
-                : 'Faculty registration successful! Verification email sent.',
+            'role' => $roleId,
         ], 201);
     }
 
