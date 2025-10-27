@@ -22,3 +22,5 @@ Route::post('/resend-verification', [App\Http\Controllers\EmailVerificationContr
   ->middleware('throttle:5,1');
 
 Route::post('/admin/store', [App\Http\Controllers\AdminController::class, 'store']);
+
+Route::post('users/login', [App\Http\Controllers\AuthController::class, 'login']);
