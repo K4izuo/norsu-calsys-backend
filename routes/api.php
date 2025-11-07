@@ -24,3 +24,5 @@ Route::post('/resend-verification', [App\Http\Controllers\EmailVerificationContr
 Route::post('/admin/store', [App\Http\Controllers\AdminController::class, 'store']);
 
 Route::post('users/login', [App\Http\Controllers\AuthController::class, 'login']);
+
+Route::get('/assets/all', [App\Http\Controllers\AssetsController::class, 'index']);
