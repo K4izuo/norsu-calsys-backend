@@ -14,7 +14,7 @@ class AssetsController extends Controller
     public function index()
     {
         return response()->json(
-            Assets::query()->select('id', 'asset_name')->get()
+            Assets::query()->select('id', 'asset_type', 'asset_name', 'capacity', 'location')->get()
         );
     }
 
