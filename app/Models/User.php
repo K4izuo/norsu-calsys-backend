@@ -64,4 +64,5 @@ class User extends Authenticatable
     {
       return $this->belongsTo(DegreeCourses::class, "degree_course_id", "id");
     }
+
 }

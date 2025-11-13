@@ -1,28 +1,41 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\{
+    AuthController,
+    UsersController,
+    AdminController,
+    CampusesController,
+    OfficesController,
+    DegreeCoursesController,
+    EmailVerificationController,
+    AssetsController
+};
 
-// Route::get('/user', function (Request $request) {
-//     return $request->user();
-// })->middleware('auth:sanctum');
+// Public routes (no authentication required)
+Route::post('users/login', [AuthController::class, 'login']);
+Route::post('users/store', [UsersController::class, 'store']);
+Route::get('verify-email', [EmailVerificationController::class, 'verify']);
+Route::post('resend-verification', [EmailVerificationController::class, 'resend'])
+    ->middleware('throttle:5,1');
 
-// Users routes
-Route::post('/users/store', [App\Http\Controllers\UsersController::class, 'store']);
-
-// Campuses routes
-Route::get('/campuses/all', [App\Http\Controllers\CampusesController::class, 'index']);
-
-Route::get('/offices/all', [App\Http\Controllers\OfficesController::class, 'index']);
-
-Route::get('/degreeCourse/{id}', [App\Http\Controllers\DegreeCoursesController::class, 'show']);
-
-Route::get('/verify-email', [App\Http\Controllers\EmailVerificationController::class, 'verify']);
-Route::post('/resend-verification', [App\Http\Controllers\EmailVerificationController::class, 'resend'])
-  ->middleware('throttle:5,1');
-
-Route::post('/admin/store', [App\Http\Controllers\AdminController::class, 'store']);
-
-Route::post('users/login', [App\Http\Controllers\AuthController::class, 'login']);
-
-Route::get('/assets/all', [App\Http\Controllers\AssetsController::class, 'index']);
+// Protected routes (authentication required)
+Route::middleware('auth:sanctum')->group(function () {
+    // Auth routes
+    Route::post('logout', [AuthController::class, 'logout']);
+    Route::post('logout-all', [AuthController::class, 'logoutAll']);
+    Route::get('me', [AuthController::class, 'me']);
+    
+    // Campuses & Offices
+    Route::get('campuses/all', [CampusesController::class, 'index']);
+    Route::get('offices/all', [OfficesController::class, 'index']);
+    
+    // Degree Courses
+    Route::get('degreeCourse/{id}', [DegreeCoursesController::class, 'show']);
+    
+    // Assets
+    Route::get('assets/all', [AssetsController::class, 'index']);
+    
+    // Admin
+    Route::post('admin/store', [AdminController::class, 'store']);
+});
