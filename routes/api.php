@@ -1,4 +1,5 @@
 <?php
+// routes/api.php
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
@@ -12,28 +13,24 @@ use App\Http\Controllers\{
     AssetsController
 };
 
-// Public routes (no authentication required)
+// Public routes
 Route::post('users/login', [AuthController::class, 'login']);
 Route::post('users/store', [UsersController::class, 'store']);
 Route::get('verify-email', [EmailVerificationController::class, 'verify']);
 Route::post('resend-verification', [EmailVerificationController::class, 'resend'])
     ->middleware('throttle:5,1');
 
-// Protected routes (authentication required)
+// Protected routes
 Route::middleware('auth:sanctum')->group(function () {
-    // Auth routes
+    // Auth
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('logout-all', [AuthController::class, 'logoutAll']);
     Route::get('me', [AuthController::class, 'me']);
     
-    // Campuses & Offices
+    // Resources
     Route::get('campuses/all', [CampusesController::class, 'index']);
     Route::get('offices/all', [OfficesController::class, 'index']);
-    
-    // Degree Courses
     Route::get('degreeCourse/{id}', [DegreeCoursesController::class, 'show']);
-    
-    // Assets
     Route::get('assets/all', [AssetsController::class, 'index']);
     
     // Admin

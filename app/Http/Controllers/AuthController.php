@@ -1,95 +1,103 @@
 <?php
+// app/Http/Controllers/AuthController.php
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserRoles;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
 
 class AuthController extends Controller
 {
-  public function login(Request $request)
-  {
-    $fields = $request->validate([
-      'username' => 'required|string|max:255',
-      'password' => 'required|string',
-    ]);
+    private const TOKEN_EXPIRY_HOURS = 8;
 
-    // Find user by username
-    $user = User::where('username', $fields['username'])->first();
+    public function login(Request $request)
+    {
+        $fields = $request->validate([
+            'username' => 'required|string|max:255',
+            'password' => 'required|string',
+        ]);
 
-    // Check if user exists
-    if (!$user) {
-      return response()->json([
-        'message' => 'Invalid username',
-        'errors' => [
-          'username' => ['The username does not exist.']
-        ]
-      ], 422);
+        $user = User::where('username', $fields['username'])->first();
+
+        // Username doesn't exist
+        if (!$user) {
+            return $this->errorResponse('The provided credentials are incorrect.', [
+                'username' => ['The provided credentials are incorrect.'],
+                'password' => ['The provided credentials are incorrect.']
+            ]);
+        }
+
+        // Password is incorrect
+        if (!Hash::check($fields['password'], $user->password)) {
+            return $this->errorResponse('Password is incorrect.', [
+                'password' => ['Password is incorrect.']
+            ]);
+        }
+
+        // Get user role
+        $userRole = UserRoles::where('user_id', $user->id)->first();
+        
+        if (!$userRole) {
+            return $this->errorResponse('User role not found.', [
+                'username' => ['User role configuration is missing.']
+            ]);
+        }
+
+        // Create token
+        $expiresAt = Carbon::now()->addHours(self::TOKEN_EXPIRY_HOURS);
+        $token = $user->createToken('auth-token', ['*'], $expiresAt)->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'role' => $userRole->role_id,
+            'user' => [
+                'id' => $user->id,
+                'username' => $user->username,
+                'email' => $user->email,
+                'first_name' => $user->first_name ?? '',
+                'last_name' => $user->last_name ?? '',
+            ],
+            'expires_at' => $expiresAt->toIso8601String(),
+        ], 200);
     }
 
-    // Check if password is correct
-    if (!Hash::check($fields['password'], $user->password)) {
-      return response()->json([
-        'message' => 'Invalid password',
-        'errors' => [
-          'password' => ['The password is incorrect.']
-        ]
-      ], 422);
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+        return response()->json(['message' => 'Logged out successfully'], 200);
     }
 
-    // Get the role_id for this user from user_roles table
-    $userRole = UserRoles::where('user_id', $user->id)->first();
-
-    if (!$userRole) {
-      return response()->json([
-        'message' => 'User role not found.',
-        'errors' => [
-          'username' => ['User role configuration is missing.']
-        ]
-      ], 422);
+    public function logoutAll(Request $request)
+    {
+        $request->user()->tokens()->delete();
+        return response()->json(['message' => 'Logged out from all devices successfully'], 200);
     }
 
-    // Create token with expiration
-    $token = $user->createToken(
-      'auth-token',
-      ['*'],
-      Carbon::now()->addHours(8) // 8 hours expiration
-    )->plainTextToken;
+    public function me(Request $request)
+    {
+        $user = $request->user();
+        $userRole = UserRoles::where('user_id', $user->id)->first();
 
-    return response()->json([
-      'token' => $token,
-      'role' => $userRole->role_id,
-      'user' => [
-        'id' => $user->id,
-        'username' => $user->username,
-        'email' => $user->email,
-      ],
-      'expires_at' => Carbon::now()->addHours(8)->toIso8601String(),
-    ], 200);
-  }
+        return response()->json([
+            'user' => [
+                'id' => $user->id,
+                'username' => $user->username,
+                'email' => $user->email,
+                'first_name' => $user->first_name ?? '',
+                'last_name' => $user->last_name ?? '',
+            ],
+            'role' => $userRole ? $userRole->role_id : null,
+        ], 200);
+    }
 
-  public function logout(Request $request)
-  {
-    // Delete the current access token
-    $request->user()->currentAccessToken()->delete();
-
-    return response()->json([
-      'message' => 'Logged out successfully'
-    ], 200);
-  }
-
-  public function logoutAll(Request $request)
-  {
-    // Delete all tokens for the user
-    $request->user()->tokens()->delete();
-
-    return response()->json([
-      'message' => 'Logged out from all devices successfully'
-    ], 200);
-  }
+    private function errorResponse(string $message, array $errors)
+    {
+        return response()->json([
+            'message' => $message,
+            'errors' => $errors
+        ], 422);
+    }
 }
