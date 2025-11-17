@@ -13,16 +13,16 @@ return new class extends Migration
     {
         Schema::create('reservations', function (Blueprint $table) {
             $table->id();
-            $table->string('event_name');
+            $table->string('title_name');
             $table->foreignId('asset_id')->constrained('assets')->onDelete('cascade');
             $table->integer('range');
-            $table->dateTime('start_time');
-            $table->dateTime('end_time');
+            $table->dateTime('time_start');
+            $table->dateTime('time_end');
             $table->string('description');
             $table->string('people_tag');
-            $table->string('information_type');
+            $table->string('info_type');
             $table->string('category');
-            $table->string('status');
+            $table->date('date');
             $table->timestamps();
         });
     }

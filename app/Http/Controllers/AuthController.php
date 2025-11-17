@@ -11,7 +11,7 @@ use Carbon\Carbon;
 
 class AuthController extends Controller
 {
-    private const TOKEN_EXPIRY_HOURS = 8;
+    private const TOKEN_EXPIRY_MINUTES = 15;
 
     public function login(Request $request)
     {
@@ -47,7 +47,7 @@ class AuthController extends Controller
         }
 
         // Create token
-        $expiresAt = Carbon::now()->addHours(self::TOKEN_EXPIRY_HOURS);
+        $expiresAt = Carbon::now()->addMinutes(self::TOKEN_EXPIRY_MINUTES);
         $token = $user->createToken('auth-token', ['*'], $expiresAt)->plainTextToken;
 
         return response()->json([

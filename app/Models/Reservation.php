@@ -7,16 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class Reservation extends Model
 {
     protected $fillable = [
-        'event_name',
-        'asset_id',
+        'title_name',
+        'asset',
         'range',
-        'start_time',
-        'end_time',
+        'time_start',
+        'time_end',
         'description',
         'people_tag',
-        'information_type',
+        'info_type',
         'category',
-        'status',
+        // 'date'
     ];
 
     public function asset()

@@ -21,7 +21,18 @@ class ReservationController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $fields = $request->validate([
+          'title_name' => 'required|string|max:255',
+          'asset' => 'required|string|max:255',
+          'range' => 'required|integer',
+          'time_start' => 'required|date',
+          'time_end' => 'required|date',
+          'description' => 'required|string|max:255',
+          'people_tag' => 'required|string|max:255',
+          'info_type' => 'required|string|max:255',
+          'category' => 'required|string|max:255',
+          'date' => 'required|date'
+        ]);
     }
 
     /**
