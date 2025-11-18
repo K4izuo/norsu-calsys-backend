@@ -10,7 +10,8 @@ use App\Http\Controllers\{
     OfficesController,
     DegreeCoursesController,
     EmailVerificationController,
-    AssetsController
+    AssetsController,
+    ReservationController
 };
 
 // Public routes
@@ -35,4 +36,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Admin
     Route::post('admin/store', [AdminController::class, 'store']);
+
+    // Event Reservation
+    Route::post('event/reservation', [ReservationController::class, 'store']);
 });

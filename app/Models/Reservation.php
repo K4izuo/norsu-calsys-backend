@@ -8,7 +8,7 @@ class Reservation extends Model
 {
     protected $fillable = [
         'title_name',
-        'asset',
+        'asset_id',
         'range',
         'time_start',
         'time_end',
@@ -16,7 +16,8 @@ class Reservation extends Model
         'people_tag',
         'info_type',
         'category',
-        // 'date'
+        'date',
+        'status',
     ];
 
     public function asset()

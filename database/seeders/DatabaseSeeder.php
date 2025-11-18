@@ -24,5 +24,6 @@ class DatabaseSeeder extends Seeder
         $this->call(campuses_seeder::class);
         $this->call(offices_seeder::class);
         $this->call(degree_courses_seeder::class);
+        $this->call(assets_seeder::class);
     }
 }

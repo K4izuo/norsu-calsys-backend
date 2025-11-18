@@ -82,12 +82,12 @@ class EmailVerificationController extends Controller
         ";
 
         // Use your PHPMailer service
-        \App\Services\MailService::send(
-            $user->email,
-            'Resend Email Verification - NORSU Calendar System',
-            $htmlBody,
-            $user->first_name
-        );
+        // \App\Services\MailService::send(
+        //     $user->email,
+        //     'Resend Email Verification - NORSU Calendar System',
+        //     $htmlBody,
+        //     $user->first_name
+        // );
 
         return response()->json(['message' => 'Verification email resent successfully.'], 200);
     }
