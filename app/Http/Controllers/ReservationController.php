@@ -13,7 +13,9 @@ class ReservationController extends Controller
    */
   public function index()
   {
-    //
+    return response()->json(
+      Reservation::query()->select('id', 'title_name', 'asset_id', 'range', 'time_start', 'time_end', 'description', 'people_tag', 'info_type', 'category', 'date', 'reserve_by_user', 'status')->get()
+    );
   }
 
   /**
@@ -31,7 +33,8 @@ class ReservationController extends Controller
       'people_tag' => 'required|string|max:500',
       'info_type' => 'required|string|in:public,private,restricted',
       'category' => 'required|string|in:academic,social,sports,other',
-      'date' => 'required|date|after_or_equal:today'
+      'date' => 'required|date|after_or_equal:today',
+      'reserve_by_user' => 'required|integer|exists:users,id'
     ]);
 
     // Add default status

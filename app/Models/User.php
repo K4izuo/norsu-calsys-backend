@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Models\DegreeCourses;
 use Laravel\Sanctum\HasApiTokens;
+use App\Models\Reservation;
 
 class User extends Authenticatable
 {
@@ -63,6 +64,11 @@ class User extends Authenticatable
     public function degree_courses()
     {
       return $this->belongsTo(DegreeCourses::class, "degree_course_id", "id");
+    }
+
+    public function reservations()
+    {
+      return $this->hasMany(Reservation::class, "reseravtion_id", "id");
     }
 
 }

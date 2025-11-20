@@ -23,6 +23,7 @@ return new class extends Migration
       $table->string('info_type');
       $table->string('category');
       $table->date('date');
+      $table->foreignId('reserve_by_user')->constrained('users')->onDelete('cascade');
       $table->string('status');
       $table->timestamps();
     });
