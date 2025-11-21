@@ -24,7 +24,7 @@ Route::get('campuses/all', [CampusesController::class, 'index']);
 Route::get('offices/all', [OfficesController::class, 'index']);
 Route::get('degreeCourse/{id}', [DegreeCoursesController::class, 'show']);
 Route::get('assets/all', [AssetsController::class, 'index']);
-Route::get('event/all', [ReservationController::class, 'index']);
+Route::get('reservations/all', [ReservationController::class, 'index']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
