@@ -57,7 +57,7 @@ class ReservationController extends Controller
   /**
    * Display the specified resource.
    */
-  public function show(Reservation $reservation)
+  public function show($id)
   {
     //
   }
