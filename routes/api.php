@@ -34,4 +34,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
   // Event Reservation
   Route::post('event/reservation', [ReservationController::class, 'store']);
+  Route::get('reservations/{id}', [ReservationController::class, 'show']);
 });

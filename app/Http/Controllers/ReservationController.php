@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Reservation;
 use App\Http\Controllers\Controller;
+use App\Models\Assets;
 use Illuminate\Http\Request;
 
 class ReservationController extends Controller
@@ -59,7 +60,13 @@ class ReservationController extends Controller
    */
   public function show($id)
   {
-    //
+    $reservationAsset = Assets::where('id', $id)->get();
+
+    if($reservationAsset->isEmpty()) {
+      return response()->json(['message' => 'No asset found on these reservation'], 404);
+    }
+
+    return response()->json($reservationAsset);
   }
 
   /**
