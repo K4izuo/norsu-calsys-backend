@@ -22,6 +22,8 @@ class Reservation extends Model
     'category',
     'date',
     'reserve_by_user',
+    'approved_by_user',
+    'declined_by_user',
     'status',
   ];
 

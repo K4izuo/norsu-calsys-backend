@@ -6,6 +6,9 @@ use App\Models\Reservation;
 use App\Http\Controllers\Controller;
 use App\Models\Assets;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Exception;
 
 class ReservationController extends Controller
 {
@@ -39,7 +42,7 @@ class ReservationController extends Controller
     ]);
 
     // Add default status
-    $fields['status'] = 'pending';
+    $fields['status'] = 'PENDING';
 
     // Add authenticated user if available
     if (\Illuminate\Support\Facades\Auth::check()) {
@@ -62,7 +65,7 @@ class ReservationController extends Controller
   {
     $reservationAsset = Assets::where('id', $id)->get();
 
-    if($reservationAsset->isEmpty()) {
+    if ($reservationAsset->isEmpty()) {
       return response()->json(['message' => 'No asset found on these reservation'], 404);
     }
 
@@ -74,7 +77,100 @@ class ReservationController extends Controller
    */
   public function update(Request $request, Reservation $reservation)
   {
-    //
+    try {
+      $fields = $request->validate([
+        'status' => 'required|string|in:PENDING,APPROVED,REJECTED',
+        'approved_by_user' => 'nullable|integer|exists:users,id',
+        'declined_by_user' => 'nullable|integer|exists:users,id',
+      ]);
+
+      // If approving this reservation
+      if ($fields['status'] === 'APPROVED') {
+        // Get the asset_id and date from the current reservation
+        $assetId = $reservation->asset_id;
+        $date = $reservation->date;
+        $timeStart = $reservation->time_start;
+        $timeEnd = $reservation->time_end;
+
+        // Get all other PENDING reservations with the same asset and date
+        $conflictingReservations = Reservation::where('id', '!=', $reservation->id)
+          ->where('asset_id', $assetId)
+          ->where('date', $date)
+          ->where('status', 'PENDING')
+          ->get();
+
+        // Check each for time overlap and reject them
+        foreach ($conflictingReservations as $conflicting) {
+          $conflictStart = $conflicting->time_start;
+          $conflictEnd = $conflicting->time_end;
+
+          // Check if times overlap
+          $overlaps = (
+            // Case 1: Conflict starts during approved time
+            ($conflictStart >= $timeStart && $conflictStart < $timeEnd) ||
+            // Case 2: Conflict ends during approved time
+            ($conflictEnd > $timeStart && $conflictEnd <= $timeEnd) ||
+            // Case 3: Conflict wraps around approved time
+            ($conflictStart <= $timeStart && $conflictEnd >= $timeEnd)
+          );
+
+          if ($overlaps) {
+            $conflicting->update([
+              'status' => 'REJECTED',
+              'declined_by_user' => $fields['approved_by_user'] ?? null,
+            ]);
+
+            Log::info('Rejected conflicting reservation', [
+              'rejected_id' => $conflicting->id,
+              'approved_id' => $reservation->id
+            ]);
+          }
+        }
+
+        // Update the current reservation with APPROVED status
+        $reservation->status = 'APPROVED';
+        $reservation->approved_by_user = $fields['approved_by_user'] ?? null;
+        $reservation->save();
+      } elseif ($fields['status'] === 'REJECTED') {
+        // Update the current reservation with REJECTED status
+        $reservation->status = 'REJECTED';
+        $reservation->declined_by_user = $fields['declined_by_user'] ?? null;
+        $reservation->save();
+      } else {
+        // For PENDING or other statuses
+        $reservation->status = $fields['status'];
+        $reservation->save();
+      }
+
+      // Log the update
+      Log::info('Reservation updated successfully', [
+        'id' => $reservation->id,
+        'status' => $reservation->status,
+        'approved_by_user' => $reservation->approved_by_user,
+        'declined_by_user' => $reservation->declined_by_user
+      ]);
+
+      // Refresh to get the latest data from database
+      $reservation->refresh();
+
+      return response()->json([
+        'reservation' => $reservation,
+        'message' => 'Reservation updated successfully'
+      ], 200);
+    } catch (ValidationException $e) {
+      return response()->json([
+        'message' => 'Validation failed',
+        'errors' => $e->errors()
+      ], 422);
+    } catch (Exception $e) {
+      Log::error('Reservation update error: ' . $e->getMessage());
+      Log::error('Stack trace: ' . $e->getTraceAsString());
+
+      return response()->json([
+        'message' => $e->getMessage(),
+        'error' => 'An error occurred while updating the reservation'
+      ], 500);
+    }
   }
 
   /**
