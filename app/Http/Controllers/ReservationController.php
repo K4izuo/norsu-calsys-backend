@@ -18,7 +18,13 @@ class ReservationController extends Controller
   public function index()
   {
     return response()->json(
-      Reservation::query()->select('id', 'title_name', 'asset_id', 'range', 'time_start', 'time_end', 'description', 'people_tag', 'info_type', 'category', 'date', 'reserve_by_user', 'status')->get()
+      Reservation::with([
+        'reservedByUser:id,first_name,last_name',
+        'approvedByUser:id,first_name,last_name',
+        'declinedByUser:id,first_name,last_name'
+      ])
+        ->select('id', 'title_name', 'asset_id', 'range', 'time_start', 'time_end', 'description', 'people_tag', 'info_type', 'category', 'date', 'reserve_by_user', 'approved_by_user', 'declined_by_user', 'status')
+        ->get()
     );
   }
 

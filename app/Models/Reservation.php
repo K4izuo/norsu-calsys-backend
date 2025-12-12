@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notifiable;
 class Reservation extends Model
 {
   use HasFactory, Notifiable;
-  
+
   protected $fillable = [
     'title_name',
     'asset_id',
@@ -35,5 +35,20 @@ class Reservation extends Model
   public function user()
   {
     return $this->belongTo(User::class);
+  }
+
+  public function reservedByUser()
+  {
+    return $this->belongsTo(User::class, 'reserve_by_user');
+  }
+
+  public function approvedByUser()
+  {
+    return $this->belongsTo(User::class, 'approved_by_user');
+  }
+
+  public function declinedByUser()
+  {
+    return $this->belongsTo(User::class, 'declined_by_user');
   }
 }
