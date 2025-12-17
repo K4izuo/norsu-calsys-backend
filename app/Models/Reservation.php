@@ -39,7 +39,7 @@ class Reservation extends Model
 
   public function reservedByUser()
   {
-    return $this->belongsTo(User::class, 'reserve_by_user');
+    return $this->belongsTo(User::class, 'reserved_by_user');
   }
 
   public function approvedByUser()
