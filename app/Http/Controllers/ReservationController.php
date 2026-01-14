@@ -21,8 +21,7 @@ class ReservationController extends Controller
       Reservation::with([
         'reservedByUser:id,first_name,last_name',
         'approvedByUser:id,first_name,last_name',
-        'declinedByUser:id,first_name,last_name',
-        'asset:id,asset_name,capacity'
+        'declinedByUser:id,first_name,last_name'
       ])
         ->select('id', 'title_name', 'asset_id', 'range', 'time_start', 'time_end', 'description', 'people_tag', 'info_type', 'category', 'date', 'reserved_by_user', 'approved_by_user', 'declined_by_user', 'status')
         ->get()
