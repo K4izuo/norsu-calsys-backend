@@ -25,6 +25,7 @@ Route::get('offices/all', [OfficesController::class, 'index']);
 Route::get('degreeCourse/{id}', [DegreeCoursesController::class, 'show']);
 Route::get('assets/all', [AssetsController::class, 'index']);
 Route::get('reservations/all', [ReservationController::class, 'index']);
+Route::get('users/{id}', [UsersController::class, 'update']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -36,4 +37,5 @@ Route::middleware('auth:sanctum')->group(function () {
   Route::post('event/reservation', [ReservationController::class, 'store']);
   Route::get('reservations/{id}', [ReservationController::class, 'show']);
   Route::put('reservations/{reservation}', [ReservationController::class, 'update']);
+  Route::post('assets/store', [AssetsController::class, 'store']);
 });

@@ -37,7 +37,7 @@ class UsersController extends Controller
       'campus_id' => 'required|integer|exists:campuses,id',
       'degree_course_id' => 'nullable|integer|exists:degree_courses,id',
       'office_id' => 'nullable|integer|exists:offices,id',
-      'assignment_id' => 'required|integer|unique:user_roles,full_id',
+      'assignment_id' => 'required|string|unique:user_roles,full_id',
       'role' => 'required|string|in:student,dean,staff,admin,super admin',
     ];
 
@@ -118,7 +118,7 @@ class UsersController extends Controller
    */
   public function update(Request $request, string $id)
   {
-    //
+    
   }
 
   /**
