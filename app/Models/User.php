@@ -71,36 +71,54 @@ class User extends Authenticatable
     return $this->hasMany(Reservation::class, "reseravtion_id", "id");
   }
 
-  private function getRoleId(): ?int
+  public function userRole()
   {
-    if (!$this->relationLoaded('user_id')) {
-      $this->load('user_id');
-    }
-    return $this->user_id?->role_id;
+    return $this->hasOne(UserRoles::class, 'user_id');
   }
 
+  // Add this relationship for assets
+  public function assets()
+  {
+    return $this->hasMany(Assets::class, 'created_by');
+  }
+
+  // Helper method to get role_id - FIXED!
+  private function getRoleId(): ?int
+  {
+    if (!$this->relationLoaded('userRole')) {
+      $this->load('userRole');
+    }
+    return $this->userRole?->role_id;
+  }
+
+  // FIXED - Now uses getRoleId() method
   public function isAdmin()
   {
-    return $this->role_id === 4;
+    return $this->getRoleId() === 4;
+  }
+
+  public function isSuperAdmin()
+  {
+    return $this->getRoleId() === 5;
   }
 
   public function isDean()
   {
-    return $this->role_id === 2;
+    return $this->getRoleId() === 2;
   }
 
   public function isStaff()
   {
-    return $this->role_id === 3;
+    return $this->getRoleId() === 3;
   }
 
   public function canViewAllOffices()
   {
-    return $this->isAdmin();
+    return $this->isAdmin() || $this->isSuperAdmin();
   }
 
   public function canViewAllAssets()
   {
-    return $this->isAdmin();
+    return $this->isAdmin() || $this->isSuperAdmin();
   }
 }
