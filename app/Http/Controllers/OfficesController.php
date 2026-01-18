@@ -7,63 +7,78 @@ use Illuminate\Http\Request;
 
 class OfficesController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        return response()->json(
-            Offices::query()
-                ->select('id', 'office_name')
-                ->where('office_is_college', 1)
-                ->get()
-        );
-    }
+  /**
+   * Display a listing of the resource.
+   */
+  public function index(Request $request)
+  {
+    $user = $request->user();
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        $fields = $request->validate([
-          'office_code' => 'required|string|max:255|unique:offices',
-          'office_name' => 'required|string|max:255',
-          'office_acr' => 'required|string|max:255',
-          'user_id' => 'required|integer',
-          'role_id' => 'required|integer',
-          'office_pap_code' => 'nullable|string|max:255',
-          'office_pap_no' => 'nullable|string|max:255',
-          'office_c_show' => 'required|boolean',
-          'office_c_is_college' => 'required|boolean',
-          'office_c_is_one' => 'required|boolean',
-        ]);
+    $offices = Offices::query()
+      ->select('id', 'office_name')
+      ->where('office_is_college', 1)
+      ->when(!$user->canViewAllOffices(), function ($query) use ($user) {
+        // Dean and Staff only see their own office
+        return $query->where('id', $user->office_id);
+      })
+      ->get();
 
-        $office = Offices::create($fields);
+    return response()->json($offices);
+  }
 
-        return response()->json($office, 201);
-    }
+  public function listAllOffices()
+  {
+    $offices = Offices::query()
+      ->select('id', 'office_name')
+      ->get();
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Offices $offices)
-    {
-        $offices = Offices::all();
-    }
+    return response()->json($offices);
+  }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Offices $offices)
-    {
-        //
-    }
+  /**
+   * Store a newly created resource in storage.
+   */
+  public function store(Request $request)
+  {
+    $fields = $request->validate([
+      'office_code' => 'required|string|max:255|unique:offices',
+      'office_name' => 'required|string|max:255',
+      'office_acr' => 'required|string|max:255',
+      'user_id' => 'required|integer',
+      'role_id' => 'required|integer',
+      'office_pap_code' => 'nullable|string|max:255',
+      'office_pap_no' => 'nullable|string|max:255',
+      'office_c_show' => 'required|boolean',
+      'office_c_is_college' => 'required|boolean',
+      'office_c_is_one' => 'required|boolean',
+    ]);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Offices $offices)
-    {
-        //
-    }
+    $office = Offices::create($fields);
+
+    return response()->json($office, 201);
+  }
+
+  /**
+   * Display the specified resource.
+   */
+  public function show(Offices $offices)
+  {
+    $offices = Offices::all();
+  }
+
+  /**
+   * Update the specified resource in storage.
+   */
+  public function update(Request $request, Offices $offices)
+  {
+    //
+  }
+
+  /**
+   * Remove the specified resource from storage.
+   */
+  public function destroy(Offices $offices)
+  {
+    //
+  }
 }

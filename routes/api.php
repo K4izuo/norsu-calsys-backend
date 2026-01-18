@@ -21,9 +21,9 @@ Route::get('verify-email', [EmailVerificationController::class, 'verify']);
 Route::post('resend-verification', [EmailVerificationController::class, 'resend'])
   ->middleware('throttle:5,1');
 Route::get('campuses/all', [CampusesController::class, 'index']);
-Route::get('offices/all', [OfficesController::class, 'index']);
+Route::get('offices/all', [OfficesController::class, 'listAllOffices']);
 Route::get('degreeCourse/{id}', [DegreeCoursesController::class, 'show']);
-Route::get('assets/all', [AssetsController::class, 'index']);
+// Route::get('assets/all', [AssetsController::class, 'index']);
 Route::get('reservations/all', [ReservationController::class, 'index']);
 Route::get('users/{id}', [UsersController::class, 'update']);
 
@@ -37,5 +37,12 @@ Route::middleware('auth:sanctum')->group(function () {
   Route::post('event/reservation', [ReservationController::class, 'store']);
   Route::get('reservations/{id}', [ReservationController::class, 'show']);
   Route::put('reservations/{reservation}', [ReservationController::class, 'update']);
+
+  // Assets - Move this here
+  Route::get('assets/all', [AssetsController::class, 'index']);
   Route::post('assets/store', [AssetsController::class, 'store']);
+  Route::get('assets/{id}', [AssetsController::class, 'show']);
+  Route::put('assets/{id}', [AssetsController::class, 'update']);
+  Route::delete('assets/{id}', [AssetsController::class, 'destroy']);
+  // Route::get('offices/all', [OfficesController::class, 'index']);
 });
