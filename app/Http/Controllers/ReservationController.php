@@ -85,7 +85,7 @@ class ReservationController extends Controller
   {
     try {
       $fields = $request->validate([
-        'status' => 'required|string|in:PENDING,APPROVED,REJECTED',
+        'status' => 'required|string|in:PENDING,APPROVED,DECLINED',
         'approved_by_user' => 'nullable|integer|exists:users,id',
         'declined_by_user' => 'nullable|integer|exists:users,id',
       ]);
@@ -122,7 +122,7 @@ class ReservationController extends Controller
 
           if ($overlaps) {
             $conflicting->update([
-              'status' => 'REJECTED',
+              'status' => 'DECLINED',
               'declined_by_user' => $fields['approved_by_user'] ?? null,
             ]);
 
@@ -137,9 +137,9 @@ class ReservationController extends Controller
         $reservation->status = 'APPROVED';
         $reservation->approved_by_user = $fields['approved_by_user'] ?? null;
         $reservation->save();
-      } elseif ($fields['status'] === 'REJECTED') {
-        // Update the current reservation with REJECTED status
-        $reservation->status = 'REJECTED';
+      } elseif ($fields['status'] === 'DECLINED') {
+        // Update the current reservation with DECLINED status
+        $reservation->status = 'DECLINED';
         $reservation->declined_by_user = $fields['declined_by_user'] ?? null;
         $reservation->save();
       } else {
