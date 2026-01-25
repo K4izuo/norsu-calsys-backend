@@ -10,13 +10,11 @@ class AssetsController extends Controller
 {
   /**
    * Display assets based on user role.
-   * Admins see all assets, regular users see only their own.
    */
   public function index(Request $request)
   {
     $user = $request->user();
 
-    // Check if user is authenticated
     if (!$user) {
       return response()->json([
         'message' => 'Unauthenticated'
@@ -25,7 +23,6 @@ class AssetsController extends Controller
 
     $query = Assets::query();
 
-    // Use the cleaner relationship method (no need to load userRole manually)
     if (!$user->canViewAllAssets()) {
       $query->where('created_by', $user->id);
     }
@@ -60,17 +57,70 @@ class AssetsController extends Controller
       ], 401);
     }
 
-    $fields = $request->validate([
-      'asset_name' => 'required|string|max:255',
-      'asset_type' => 'required|string|max:255',
-      'capacity' => 'required|integer|min:1',
-      'location' => 'required|string|max:255',
-      'acquisition_date' => 'required|date',
-      'condition' => 'required|string|max:500',
-      'campus_id' => 'required|integer|exists:campuses,id',
-      'office_id' => 'required|integer|exists:offices,id',
-    ]);
+    // Load the offices relationship
+    $user->load('offices', 'userRole');
 
+    $roleId = $user->userRole?->role_id;
+    $userCampusId = $user->campus_id;
+
+    // Get office_id from the pivot table
+    $userOfficeId = $user->offices->first()?->id;
+
+    // Check if user is admin or super admin (roles 4 and 5)
+    $isAdmin = ($roleId == 4 || $roleId == 5);
+
+    // For non-admin users, verify they have campus and office assigned
+    if (!$isAdmin && (empty($userCampusId) || empty($userOfficeId))) {
+      return response()->json([
+        'message' => 'Your account does not have a campus and office assigned. Please contact an administrator.',
+        'debug' => [
+          'campus_id' => $userCampusId,
+          'office_id' => $userOfficeId,
+        ]
+      ], 422);
+    }
+
+    // Different validation rules based on role
+    if ($isAdmin) {
+      // Admin must provide campus_id and office_id
+      $rules = [
+        'asset_name' => 'required|string|max:255',
+        'asset_type' => 'required|string|max:255',
+        'capacity' => 'required|integer|min:1',
+        'location' => 'required|string|max:255',
+        'acquisition_date' => 'required|date',
+        'condition' => 'required|string|max:500',
+        'campus_id' => 'required|integer|exists:campuses,id',
+        'office_id' => 'required|integer|exists:offices,id',
+      ];
+    } else {
+      // Dean/Staff don't need to provide campus_id and office_id
+      $rules = [
+        'asset_name' => 'required|string|max:255',
+        'asset_type' => 'required|string|max:255',
+        'capacity' => 'required|integer|min:1',
+        'location' => 'required|string|max:255',
+        'acquisition_date' => 'required|date',
+        'condition' => 'required|string|max:500',
+      ];
+    }
+
+    $validated = $request->validate($rules);
+
+    // For non-admin users, use their assigned campus and office
+    if (!$isAdmin) {
+      $validated['campus_id'] = $userCampusId;
+      $validated['office_id'] = $userOfficeId;
+    } else {
+      // For admin users, verify the provided campus_id and office_id are valid
+      if (empty($validated['campus_id']) || empty($validated['office_id'])) {
+        return response()->json([
+          'message' => 'Campus and Office are required for admin users.'
+        ], 422);
+      }
+    }
+
+    $fields = $validated;
     $fields['availability_status'] = 'AVAILABLE';
     $fields['created_by'] = $user->id;
 
@@ -94,7 +144,6 @@ class AssetsController extends Controller
 
     $asset = Assets::findOrFail($id);
 
-    // Check if user can view this asset
     if (!$user->canViewAllAssets() && $asset->created_by !== $user->id) {
       return response()->json([
         'message' => 'Unauthorized to view this asset'
@@ -119,7 +168,6 @@ class AssetsController extends Controller
 
     $asset = Assets::findOrFail($id);
 
-    // Check if user can update this asset
     if (!$user->canViewAllAssets() && $asset->created_by !== $user->id) {
       return response()->json([
         'message' => 'Unauthorized to update this asset'
@@ -158,7 +206,6 @@ class AssetsController extends Controller
 
     $asset = Assets::findOrFail($id);
 
-    // Check if user can delete this asset
     if (!$user->canViewAllAssets() && $asset->created_by !== $user->id) {
       return response()->json([
         'message' => 'Unauthorized to delete this asset'

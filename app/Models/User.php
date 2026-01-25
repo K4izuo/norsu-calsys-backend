@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -12,48 +11,48 @@ use App\Models\Reservation;
 
 class User extends Authenticatable
 {
-  /** @use HasFactory<\Database\Factories\UserFactory> */
   use HasFactory, Notifiable, HasApiTokens;
 
-  /**
-   * The attributes that are mass assignable.
-   *
-   * @var list<string>
-   */
   protected $fillable = [
     'first_name',
     'middle_name',
     'last_name',
     'email',
-    'username',      // <-- add this
-    'password',      // <-- add this
-    // 'role_id',
+    'username',
+    'password',
     'campus_id',
-    'office_id',
     'degree_course_id',
   ];
 
-  /**
-   * The attributes that should be hidden for serialization.
-   *
-   * @var list<string>
-   */
   protected $hidden = [
     'password',
     'remember_token',
   ];
 
-  /**
-   * Get the attributes that should be cast.
-   *
-   * @return array<string, string>
-   */
   protected function casts(): array
   {
     return [
       'email_verified_at' => 'datetime',
       'password' => 'hashed',
     ];
+  }
+
+  // Add many-to-many relationship with offices
+  public function offices()
+  {
+    return $this->belongsToMany(Offices::class, 'office_user', 'user_id', 'office_id')
+      ->withTimestamps();
+  }
+
+  // Add accessor to get the first office_id (for users with one office)
+  public function getOfficeIdAttribute()
+  {
+    // Get the first office relationship
+    if (!$this->relationLoaded('offices')) {
+      $this->load('offices');
+    }
+
+    return $this->offices->first()?->id;
   }
 
   public function campuses()
@@ -76,13 +75,11 @@ class User extends Authenticatable
     return $this->hasOne(UserRoles::class, 'user_id');
   }
 
-  // Add this relationship for assets
   public function assets()
   {
     return $this->hasMany(Assets::class, 'created_by');
   }
 
-  // Helper method to get role_id - FIXED!
   private function getRoleId(): ?int
   {
     if (!$this->relationLoaded('userRole')) {
@@ -91,7 +88,6 @@ class User extends Authenticatable
     return $this->userRole?->role_id;
   }
 
-  // FIXED - Now uses getRoleId() method
   public function isAdmin()
   {
     return $this->getRoleId() === 4;
