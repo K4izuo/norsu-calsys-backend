@@ -25,6 +25,7 @@ Route::get('offices/all', [OfficesController::class, 'listAllOffices']);
 Route::get('degreeCourse/{id}', [DegreeCoursesController::class, 'show']);
 // Route::get('assets/all', [AssetsController::class, 'index']);
 Route::get('reservations/all', [ReservationController::class, 'index']);
+Route::get('reservations/assets/{id}', [ReservationController::class, 'show']);
 Route::get('users/{id}', [UsersController::class, 'update']);
 
 // Protected routes
