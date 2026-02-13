@@ -46,4 +46,6 @@ Route::middleware('auth:sanctum')->group(function () {
   Route::put('assets/{id}', [AssetsController::class, 'update']);
   Route::delete('assets/{id}', [AssetsController::class, 'destroy']);
   // Route::get('offices/all', [OfficesController::class, 'index']);
+
+  Route::post('/update-token-expiration', [AuthController::class, 'updateTokenExpiration']);
 });

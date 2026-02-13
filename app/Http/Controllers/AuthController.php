@@ -11,93 +11,129 @@ use Carbon\Carbon;
 
 class AuthController extends Controller
 {
-    private const TOKEN_EXPIRY_MINUTES = 15;
+  private const TOKEN_EXPIRY_MINUTES = 15;
 
-    public function login(Request $request)
-    {
-        $fields = $request->validate([
-            'username' => 'required|string|max:255',
-            'password' => 'required|string',
-        ]);
+  public function login(Request $request)
+  {
+    $fields = $request->validate([
+      'username' => 'required|string|max:255',
+      'password' => 'required|string',
+    ]);
 
-        $user = User::where('username', $fields['username'])->first();
+    $user = User::where('username', $fields['username'])->first();
 
-        // Username doesn't exist
-        if (!$user) {
-            return $this->errorResponse('The provided credentials are incorrect.', [
-                'username' => ['The provided credentials are incorrect.'],
-                'password' => ['The provided credentials are incorrect.']
-            ]);
-        }
-
-        // Password is incorrect
-        if (!Hash::check($fields['password'], $user->password)) {
-            return $this->errorResponse('Password is incorrect.', [
-                'password' => ['Password is incorrect.']
-            ]);
-        }
-
-        // Get user role
-        $userRole = UserRoles::where('user_id', $user->id)->first();
-        
-        if (!$userRole) {
-            return $this->errorResponse('User role not found.', [
-                'username' => ['User role configuration is missing.']
-            ]);
-        }
-
-        // Create token
-        $expiresAt = Carbon::now()->addMinutes(self::TOKEN_EXPIRY_MINUTES);
-        $token = $user->createToken('auth-token', ['*'], $expiresAt)->plainTextToken;
-
-        return response()->json([
-            'token' => $token,
-            'role' => $userRole->role_id,
-            'user' => [
-                'id' => $user->id,
-                'username' => $user->username,
-                'email' => $user->email,
-                'first_name' => $user->first_name ?? '',
-                'last_name' => $user->last_name ?? '',
-            ],
-            'expires_at' => $expiresAt->toIso8601String(),
-        ], 200);
+    // Username doesn't exist
+    if (!$user) {
+      return $this->errorResponse('The provided credentials are incorrect.', [
+        'username' => ['The provided credentials are incorrect.'],
+        'password' => ['The provided credentials are incorrect.']
+      ]);
     }
 
-    public function logout(Request $request)
-    {
-        $request->user()->currentAccessToken()->delete();
-        return response()->json(['message' => 'Logged out successfully'], 200);
+    // Password is incorrect
+    if (!Hash::check($fields['password'], $user->password)) {
+      return $this->errorResponse('Password is incorrect.', [
+        'password' => ['Password is incorrect.']
+      ]);
     }
 
-    public function logoutAll(Request $request)
-    {
-        $request->user()->tokens()->delete();
-        return response()->json(['message' => 'Logged out from all devices successfully'], 200);
+    // Get user role
+    $userRole = UserRoles::where('user_id', $user->id)->first();
+
+    if (!$userRole) {
+      return $this->errorResponse('User role not found.', [
+        'username' => ['User role configuration is missing.']
+      ]);
     }
 
-    public function me(Request $request)
-    {
-        $user = $request->user();
-        $userRole = UserRoles::where('user_id', $user->id)->first();
+    // Create token
+    $expiresAt = Carbon::now()->addMinutes(self::TOKEN_EXPIRY_MINUTES);
+    $token = $user->createToken('auth-token', ['*'], $expiresAt)->plainTextToken;
 
-        return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'username' => $user->username,
-                'email' => $user->email,
-                'first_name' => $user->first_name ?? '',
-                'last_name' => $user->last_name ?? '',
-            ],
-            'role' => $userRole ? $userRole->role_id : null,
-        ], 200);
+    return response()->json([
+      'token' => $token,
+      'role' => $userRole->role_id,
+      'user' => [
+        'id' => $user->id,
+        'username' => $user->username,
+        'email' => $user->email,
+        'first_name' => $user->first_name ?? '',
+        'last_name' => $user->last_name ?? '',
+      ],
+      'expires_at' => $expiresAt->toIso8601String(),
+    ], 200);
+  }
+
+  public function logout(Request $request)
+  {
+    $request->user()->currentAccessToken()->delete();
+    return response()->json(['message' => 'Logged out successfully'], 200);
+  }
+
+  public function logoutAll(Request $request)
+  {
+    $request->user()->tokens()->delete();
+    return response()->json(['message' => 'Logged out from all devices successfully'], 200);
+  }
+
+  public function me(Request $request)
+  {
+    $user = $request->user();
+    $userRole = UserRoles::where('user_id', $user->id)->first();
+
+    return response()->json([
+      'user' => [
+        'id' => $user->id,
+        'username' => $user->username,
+        'email' => $user->email,
+        'first_name' => $user->first_name ?? '',
+        'last_name' => $user->last_name ?? '',
+      ],
+      'role' => $userRole ? $userRole->role_id : null,
+    ], 200);
+  }
+
+  private function errorResponse(string $message, array $errors)
+  {
+    return response()->json([
+      'message' => $message,
+      'errors' => $errors
+    ], 422);
+  }
+
+  public function updateTokenExpiration(Request $request)
+  {
+    $fields = $request->validate([
+      'token' => 'required|string',
+    ]);
+
+    // Extract the plain token from Bearer format if present
+    $token = str_replace('Bearer ', '', $fields['token']);
+
+    // Find the token in personal_access_tokens table
+    $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+
+    if (!$accessToken) {
+      return response()->json([
+        'message' => 'Invalid token',
+      ], 401);
     }
 
-    private function errorResponse(string $message, array $errors)
-    {
-        return response()->json([
-            'message' => $message,
-            'errors' => $errors
-        ], 422);
+    // Check if token has expired
+    if ($accessToken->expires_at && $accessToken->expires_at->isPast()) {
+      return response()->json([
+        'message' => 'Token has expired',
+      ], 401);
     }
+
+    // Update expiration time (15 minutes from now)
+    $newExpiresAt = Carbon::now()->addMinutes(self::TOKEN_EXPIRY_MINUTES);
+    $accessToken->expires_at = $newExpiresAt;
+    $accessToken->save();
+
+    return response()->json([
+      'message' => 'Token expiration updated successfully',
+      'expires_at' => $newExpiresAt->toIso8601String(),
+    ], 200);
+  }
 }
