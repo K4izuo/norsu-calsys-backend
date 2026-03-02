@@ -136,4 +136,32 @@ class AuthController extends Controller
       'expires_at' => $newExpiresAt->toIso8601String(),
     ], 200);
   }
+
+  public function updatePassword(Request $request)
+  {
+    $fields = $request->validate([
+      'current_password' => 'required|string',
+      'new_password' => 'required|string|min:8|confirmed',
+    ]);
+
+    $user = $request->user();
+
+    // Check if current password is correct
+    if (!Hash::check($fields['current_password'], $user->password)) {
+      return response()->json([
+        'message' => 'Current password is incorrect.',
+        'errors' => [
+          'current_password' => ['Current password is incorrect.']
+        ]
+      ], 422);
+    }
+
+    // Update password
+    $user->password = Hash::make($fields['new_password']);
+    $user->save();
+
+    return response()->json([
+      'message' => 'Password updated successfully.'
+    ], 200);
+  }
 }
