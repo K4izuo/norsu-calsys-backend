@@ -8,16 +8,20 @@ return new class extends Migration
 {
   public function up(): void
   {
-    Schema::table('assets', function (Blueprint $table) {
-      $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('cascade');
-    });
+    if (!Schema::hasColumn('assets', 'created_by')) {
+      Schema::table('assets', function (Blueprint $table) {
+        $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('cascade');
+      });
+    }
   }
 
   public function down(): void
   {
-    Schema::table('assets', function (Blueprint $table) {
-      $table->dropForeign(['created_by']);
-      $table->dropColumn('created_by');
-    });
+    if (Schema::hasColumn('assets', 'created_by')) {
+      Schema::table('assets', function (Blueprint $table) {
+        $table->dropForeign(['created_by']);
+        $table->dropColumn('created_by');
+      });
+    }
   }
 };
