@@ -9,7 +9,7 @@ return new class extends Migration
   public function up(): void
   {
     Schema::table('assets', function (Blueprint $table) {
-      $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
+      $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('cascade');
     });
   }
 

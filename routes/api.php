@@ -39,6 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
   Route::post('event/reservation', [ReservationController::class, 'store']);
   Route::get('reservations/{id}', [ReservationController::class, 'show']);
   Route::put('reservations/{reservation}', [ReservationController::class, 'update']);
+  Route::put('reservations/{reservation}/move', [ReservationController::class, 'move']);
 
   // Assets - Move this here
   Route::get('assets/all', [AssetsController::class, 'index']);

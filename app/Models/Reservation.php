@@ -25,6 +25,8 @@ class Reservation extends Model
     'approved_by_user',
     'declined_by_user',
     'status',
+    'is_moved',
+    'original_date',
   ];
 
   public function asset()
