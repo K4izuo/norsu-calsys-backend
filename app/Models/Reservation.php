@@ -10,6 +10,8 @@ class Reservation extends Model
 {
   use HasFactory, Notifiable;
 
+  protected $appends = ['move_reason'];
+
   protected $fillable = [
     'title_name',
     'asset_id',
@@ -52,5 +54,15 @@ class Reservation extends Model
   public function declinedByUser()
   {
     return $this->belongsTo(User::class, 'declined_by_user');
+  }
+
+  public function latestStatus()
+  {
+    return $this->hasOne(ReservationStatus::class)->latest();
+  }
+
+  public function getMoveReasonAttribute(): ?string
+  {
+    return $this->latestStatus?->move_reason;
   }
 }

@@ -22,7 +22,8 @@ class ReservationController extends Controller
       Reservation::with([
         'reservedByUser:id,first_name,last_name',
         'approvedByUser:id,first_name,last_name',
-        'declinedByUser:id,first_name,last_name'
+        'declinedByUser:id,first_name,last_name',
+        'latestStatus:id,reservation_id,move_reason'
       ])
         ->select('id', 'title_name', 'asset_id', 'range', 'time_start', 'time_end', 'description', 'people_tag', 'info_type', 'category', 'date', 'original_date', 'reserved_by_user', 'approved_by_user', 'declined_by_user', 'status', 'is_moved')
         ->get()
@@ -194,7 +195,7 @@ class ReservationController extends Controller
         'new_date'       => 'required|date|after_or_equal:today',
         'new_time_start' => 'required|date_format:H:i',
         'new_time_end'   => 'required|date_format:H:i|after:new_time_start',
-        'reason'         => 'required|string|max:1000',
+        'move_reason'    => 'required|string|max:1000',
         'moved_by'       => 'required|integer|exists:users,id',
       ]);
 
@@ -226,7 +227,7 @@ class ReservationController extends Controller
       ReservationStatus::create([
         'reservation_id' => $reservation->id,
         'moved_by_user'  => $fields['moved_by'],
-        'reason'         => $fields['reason'],
+        'move_reason'    => $fields['move_reason'],
         'old_date'       => $reservation->date,
         'old_time_start' => $reservation->time_start,
         'old_time_end'   => $reservation->time_end,

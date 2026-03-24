@@ -11,7 +11,7 @@ class ReservationStatus extends Model
     protected $fillable = [
         'reservation_id',
         'moved_by_user',
-        'reason',
+        'move_reason',
         'old_date',
         'old_time_start',
         'old_time_end',
