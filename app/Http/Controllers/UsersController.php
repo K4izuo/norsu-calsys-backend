@@ -18,7 +18,23 @@ class UsersController extends Controller
    */
   public function index()
   {
-    //
+    $users = User::with('userRole')
+      ->get()
+      ->map(function ($user) {
+        return [
+          'id'          => $user->id,
+          'username'    => $user->username,
+          'email'       => $user->email,
+          'first_name'  => $user->first_name,
+          'middle_name' => $user->middle_name,
+          'last_name'   => $user->last_name,
+          'role'        => $user->userRole?->role_id,
+          'created_at'  => $user->created_at,
+          'updated_at'  => $user->updated_at,
+        ];
+      });
+
+    return response()->json($users);
   }
 
   /**

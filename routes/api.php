@@ -26,7 +26,7 @@ Route::get('degreeCourse/{id}', [DegreeCoursesController::class, 'show']);
 // Route::get('assets/all', [AssetsController::class, 'index']);
 Route::get('reservations/all', [ReservationController::class, 'index']);
 Route::get('reservations/assets/{id}', [ReservationController::class, 'show']);
-Route::get('users/{id}', [UsersController::class, 'update']);
+Route::get('users/{id}', [UsersController::class, 'update'])->where('id', '[0-9]+');
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -40,6 +40,9 @@ Route::middleware('auth:sanctum')->group(function () {
   Route::get('reservations/{id}', [ReservationController::class, 'show']);
   Route::put('reservations/{reservation}', [ReservationController::class, 'update']);
   Route::put('reservations/{reservation}/move', [ReservationController::class, 'move']);
+
+  // Users
+  Route::get('users/all', [UsersController::class, 'index']);
 
   // Assets - Move this here
   Route::get('assets/all', [AssetsController::class, 'index']);
