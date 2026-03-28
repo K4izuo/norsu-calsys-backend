@@ -90,31 +90,26 @@ class User extends Authenticatable
 
   public function isAdmin()
   {
-    return $this->getRoleId() === 4;
-  }
-
-  public function isSuperAdmin()
-  {
-    return $this->getRoleId() === 5;
+    return $this->getRoleId() === 3;
   }
 
   public function isDean()
   {
-    return $this->getRoleId() === 2;
+    return $this->getRoleId() === 1;
   }
 
   public function isStaff()
   {
-    return $this->getRoleId() === 3;
+    return $this->getRoleId() === 2;
   }
 
   public function canViewAllOffices()
   {
-    return $this->isAdmin() || $this->isSuperAdmin();
+    return $this->isAdmin();
   }
 
   public function canViewAllAssets()
   {
-    return $this->isAdmin() || $this->isSuperAdmin();
+    return $this->isAdmin();
   }
 }

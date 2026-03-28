@@ -66,8 +66,8 @@ class AssetsController extends Controller
     // Get office_id from the pivot table
     $userOfficeId = $user->offices->first()?->id;
 
-    // Check if user is admin or super admin (roles 4 and 5)
-    $isAdmin = ($roleId == 4 || $roleId == 5);
+    // Check if user is admin (role 3)
+    $isAdmin = ($roleId == 3);
 
     // For non-admin users, verify they have campus and office assigned
     if (!$isAdmin && (empty($userCampusId) || empty($userOfficeId))) {

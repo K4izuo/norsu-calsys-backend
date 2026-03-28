@@ -29,7 +29,7 @@ class AdminController extends Controller
 
             UserRoles::create([
                 'user_id' => $user->id,
-                'role_id' => 4, // 4 = ADMIN (adjust if your admin role_id is different)
+                'role_id' => 3, // 3 = ADMIN
                 'full_id' => $fields['adminID'],
             ]);
 
