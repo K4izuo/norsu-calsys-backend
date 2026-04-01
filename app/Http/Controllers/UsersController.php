@@ -122,9 +122,24 @@ class UsersController extends Controller
   /**
    * Display the specified resource.
    */
-  public function show(Request $request)
+  public function show(string $id)
   {
-    //
+    $user = User::with('userRole')->find($id);
+
+    if (!$user) {
+      return response()->json(['error' => 'User not found'], 404);
+    }
+
+    return response()->json([
+      'id'          => $user->id,
+      'first_name'  => $user->first_name,
+      'middle_name' => $user->middle_name,
+      'last_name'   => $user->last_name,
+      'email'       => $user->email,
+      'role'        => $user->userRole?->role_id,
+      'campus_id'   => $user->campus_id,
+      'created_at'  => $user->created_at,
+    ]);
   }
 
   /**
@@ -132,7 +147,27 @@ class UsersController extends Controller
    */
   public function update(Request $request, string $id)
   {
-    
+    $user = User::find($id);
+
+    if (!$user) {
+      return response()->json(['error' => 'User not found'], 404);
+    }
+
+    $validated = $request->validate([
+      'first_name' => 'sometimes|string|max:255',
+      'last_name'  => 'sometimes|string|max:255',
+      'email'      => 'sometimes|string|email|max:255|unique:users,email,' . $id,
+      'campus_id'  => 'sometimes|integer|exists:campuses,id',
+      'password'   => 'sometimes|string|min:8',
+    ]);
+
+    if (isset($validated['password'])) {
+      $validated['password'] = bcrypt($validated['password']);
+    }
+
+    $user->update($validated);
+
+    return response()->json(['message' => 'User updated successfully']);
   }
 
   /**
