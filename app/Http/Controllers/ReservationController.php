@@ -4,9 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Reservation;
 use App\Models\ReservationStatus;
+use App\Models\Tagging;
 use App\Http\Controllers\Controller;
 use App\Models\Assets;
+use App\Models\User;
+use App\Notifications\TaggedInApprovedEvent;
+use App\Notifications\ReservationSubmittedNotification;
+use App\Notifications\ReservationApprovedNotification;
+use App\Notifications\ReservationDeclinedNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Exception;
@@ -35,34 +42,56 @@ class ReservationController extends Controller
    */
   public function store(Request $request)
   {
-    $fields = $request->validate([
-      'title_name' => 'required|string|max:255',
-      'asset_id' => 'required|integer|exists:assets,id',
-      'range' => 'required|integer|min:1',
-      'time_start' => 'required|date_format:H:i',
-      'time_end' => 'required|date_format:H:i|after:time_start',
-      'description' => 'required|string|max:1000',
-      'people_tag' => 'required|string|max:500',
-      'info_type' => 'required|string|in:public,private,restricted',
-      'category' => 'required|string|in:academic,social,sports,other',
-      'date' => 'required|date|after_or_equal:today',
-      'reserved_by_user' => 'required|integer|exists:users,id'
+    $validated = $request->validate([
+      'title_name'          => 'required|string|max:255',
+      'asset_id'            => 'required|integer|exists:assets,id',
+      'range'               => 'required|integer|min:1',
+      'time_start'          => 'required|date_format:H:i',
+      'time_end'            => 'required|date_format:H:i|after:time_start',
+      'description'         => 'required|string|max:1000',
+      'people_tag'          => 'nullable|string|max:500',
+      'info_type'           => 'required|string|in:public,private,restricted',
+      'category'            => 'required|string|in:academic,social,sports,other',
+      'date'                => 'required|date|after_or_equal:today',
+      'reserved_by_user'    => 'required|integer|exists:users,id',
+      'tagged_people_ids'   => 'nullable|array',
+      'tagged_people_ids.*' => 'integer|exists:people,id',
     ]);
 
-    // Add default status
-    $fields['status'] = 'PENDING';
+    $taggedPeopleIds = $validated['tagged_people_ids'] ?? [];
+    unset($validated['tagged_people_ids']);
 
-    // Add authenticated user if available
+    $validated['status'] = 'PENDING';
+
     if (\Illuminate\Support\Facades\Auth::check()) {
-      $fields['user_id'] = \Illuminate\Support\Facades\Auth::id();
+      $validated['user_id'] = \Illuminate\Support\Facades\Auth::id();
     }
 
-    $reservation = Reservation::create($fields);
+    $reservation = DB::transaction(function () use ($validated, $taggedPeopleIds) {
+      $reservation = Reservation::create($validated);
 
+      foreach ($taggedPeopleIds as $personId) {
+        Tagging::firstOrCreate([
+          'tagPeopleID'         => $personId,
+          'taggedReservationID' => $reservation->id,
+        ]);
+      }
+
+      return $reservation;
+    });
+
+    // Notify all admins about the new pending reservation (exclude the submitter)
+    $admins = User::whereHas('userRole', fn($q) => $q->where('role_id', 3))
+      ->where('id', '!=', $reservation->reserved_by_user)
+      ->get();
+
+    foreach ($admins as $admin) {
+      $admin->notify(new ReservationSubmittedNotification($reservation));
+    }
 
     return response()->json([
       'reservation' => $reservation,
-      'message' => 'Reservation created successfully'
+      'message'     => 'Reservation created successfully'
     ], 201);
   }
 
@@ -139,11 +168,33 @@ class ReservationController extends Controller
         $reservation->status = 'APPROVED';
         $reservation->approved_by_user = $fields['approved_by_user'] ?? null;
         $reservation->save();
+
+        // Notify the person who submitted the reservation
+        $submitter = User::find($reservation->reserved_by_user);
+        if ($submitter) {
+          $submitter->notify(new ReservationApprovedNotification($reservation));
+        }
+
+        // Notify tagged people who have a linked user account
+        $taggedWithLink = $reservation->taggings()
+          ->with('person.linkedUser')
+          ->get()
+          ->filter(fn($t) => $t->person?->linkedUser !== null);
+
+        foreach ($taggedWithLink as $tagging) {
+          $tagging->person->linkedUser->notify(new TaggedInApprovedEvent($reservation));
+        }
       } elseif ($fields['status'] === 'DECLINED') {
         // Update the current reservation with DECLINED status
         $reservation->status = 'DECLINED';
         $reservation->declined_by_user = $fields['declined_by_user'] ?? null;
         $reservation->save();
+
+        // Notify the person who submitted the reservation
+        $submitter = User::find($reservation->reserved_by_user);
+        if ($submitter) {
+          $submitter->notify(new ReservationDeclinedNotification($reservation));
+        }
       } else {
         // For PENDING or other statuses
         $reservation->status = $fields['status'];

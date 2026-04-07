@@ -61,6 +61,11 @@ class Reservation extends Model
     return $this->hasOne(ReservationStatus::class)->latest();
   }
 
+  public function taggings()
+  {
+    return $this->hasMany(\App\Models\Tagging::class, 'taggedReservationID');
+  }
+
   public function getMoveReasonAttribute(): ?string
   {
     return $this->latestStatus?->move_reason;

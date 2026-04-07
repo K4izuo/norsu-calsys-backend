@@ -11,7 +11,9 @@ use App\Http\Controllers\{
   DegreeCoursesController,
   EmailVerificationController,
   AssetsController,
-  ReservationController
+  ReservationController,
+  PeopleController,
+  NotificationsController
 };
 
 // Public routes
@@ -27,6 +29,7 @@ Route::get('degreeCourse/{id}', [DegreeCoursesController::class, 'show']);
 Route::get('reservations/all', [ReservationController::class, 'index']);
 Route::get('reservations/assets/{id}', [ReservationController::class, 'show']);
 Route::get('users/{id}', [UsersController::class, 'show'])->where('id', '[0-9]+');
+
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -55,4 +58,18 @@ Route::middleware('auth:sanctum')->group(function () {
   // Route::get('offices/all', [OfficesController::class, 'index']);
 
   Route::post('/update-token-expiration', [AuthController::class, 'updateTokenExpiration']);
+
+  // People
+  Route::get('people', [PeopleController::class, 'index']);
+  Route::post('people', [PeopleController::class, 'store']);
+  Route::put('people/{person}', [PeopleController::class, 'update']);
+  Route::delete('people/{person}', [PeopleController::class, 'destroy']);
+  Route::post('people/{person}/link-user', [PeopleController::class, 'linkUser']);
+
+  // Notifications
+  Route::get('notifications', [NotificationsController::class, 'index']);
+  Route::get('notifications/unread-count', [NotificationsController::class, 'unreadCount']);
+  Route::put('notifications/{id}/read', [NotificationsController::class, 'markRead']);
+  Route::put('notifications/mark-all-read', [NotificationsController::class, 'markAllRead']);
+
 });
