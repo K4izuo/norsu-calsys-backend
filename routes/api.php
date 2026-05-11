@@ -13,7 +13,9 @@ use App\Http\Controllers\{
   AssetsController,
   ReservationController,
   PeopleController,
-  NotificationsController
+  NotificationsController,
+  ActivityLogController,
+  DashboardController
 };
 
 // Public routes
@@ -40,9 +42,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
   // Event Reservation
   Route::post('event/reservation', [ReservationController::class, 'store']);
+  Route::get('reservations/queue', [ReservationController::class, 'queue']);
   Route::get('reservations/{id}', [ReservationController::class, 'show']);
   Route::put('reservations/{reservation}', [ReservationController::class, 'update']);
+  Route::put('reservations/{reservation}/multimedia-comment', [ReservationController::class, 'updateMultimediaComment']);
   Route::put('reservations/{reservation}/move', [ReservationController::class, 'move']);
+  Route::post('reservations/{reservation}/resubmit', [ReservationController::class, 'resubmit']);
 
   // Users
   Route::get('users/all', [UsersController::class, 'index']);
@@ -71,5 +76,11 @@ Route::middleware('auth:sanctum')->group(function () {
   Route::get('notifications/unread-count', [NotificationsController::class, 'unreadCount']);
   Route::put('notifications/{id}/read', [NotificationsController::class, 'markRead']);
   Route::put('notifications/mark-all-read', [NotificationsController::class, 'markAllRead']);
+
+  // Activity Logs
+  Route::get('activity-logs', [ActivityLogController::class, 'index']);
+
+  // Dashboard
+  Route::get('dashboard/stats', [DashboardController::class, 'stats']);
 
 });

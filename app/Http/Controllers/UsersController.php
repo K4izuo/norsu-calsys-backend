@@ -54,16 +54,17 @@ class UsersController extends Controller
       'degree_course_id' => 'nullable|integer|exists:degree_courses,id',
       'office_id' => 'nullable|integer|exists:offices,id',
       'assignment_id' => 'required|string|unique:user_roles,full_id',
-      'role' => 'required|string|in:dean,staff,admin',
+      'role' => 'required|string|in:dean,staff,admin,multimedia,university-president',
     ];
 
     $validated = $request->validate($rules);
 
-    // Map role name to role_id (1=dean, 2=staff, 3=admin)
     $roleMap = [
-      'dean' => 1,
-      'staff' => 2,
-      'admin' => 3,
+      'dean'                 => 1,
+      'staff'                => 2,
+      'admin'                => 3,
+      'multimedia'           => 11,
+      'university-president' => 12,
     ];
 
     $roleId = $roleMap[$validated['role']] ?? null;

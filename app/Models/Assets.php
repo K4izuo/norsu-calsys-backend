@@ -30,4 +30,9 @@ class Assets extends Model
   {
     return $this->belongsTo(Offices::class);
   }
+
+  public function createdBy()
+  {
+    return $this->belongsTo(User::class, 'created_by');
+  }
 }

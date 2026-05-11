@@ -5,11 +5,11 @@ namespace App\Notifications;
 use App\Models\Reservation;
 use Illuminate\Notifications\Notification;
 
-class ReservationSubmittedNotification extends Notification
+class ReservationFullyApprovedNotification extends Notification
 {
     public function __construct(
         public Reservation $reservation,
-        public string $stage = 'admin'
+        public ?string $note = null,
     ) {}
 
     public function via(object $notifiable): array
@@ -19,12 +19,10 @@ class ReservationSubmittedNotification extends Notification
 
     public function toDatabase(object $notifiable): array
     {
-        $message = match ($this->stage) {
-            'student_director' => "New reservation pending Student Director approval: {$this->reservation->title_name}",
-            'vp_approval'      => "New reservation pending VP approval: {$this->reservation->title_name}",
-            'campus_director'  => "New reservation pending Campus Director review: {$this->reservation->title_name}",
-            default            => "New reservation pending approval: {$this->reservation->title_name}",
-        };
+        $message = "Your reservation '{$this->reservation->title_name}' has been fully approved and is now on the calendar.";
+        if ($this->note) {
+            $message .= " Note: {$this->note}";
+        }
 
         return [
             'reservation_id' => $this->reservation->id,
@@ -32,9 +30,9 @@ class ReservationSubmittedNotification extends Notification
             'date'           => $this->reservation->date,
             'time_start'     => $this->reservation->time_start,
             'time_end'       => $this->reservation->time_end,
-            'stage'          => $this->stage,
+            'note'           => $this->note,
             'message'        => $message,
-            'type'           => 'reservation_submitted',
+            'type'           => 'fully_approved',
         ];
     }
 }

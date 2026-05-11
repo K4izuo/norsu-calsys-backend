@@ -67,7 +67,7 @@ class User extends Authenticatable
 
   public function reservations()
   {
-    return $this->hasMany(Reservation::class, "reseravtion_id", "id");
+    return $this->hasMany(Reservation::class, 'reserved_by_user');
   }
 
   public function userRole()
@@ -80,7 +80,12 @@ class User extends Authenticatable
     return $this->hasMany(Assets::class, 'created_by');
   }
 
-  private function getRoleId(): ?int
+  public function office()
+  {
+    return $this->belongsTo(Offices::class, 'office_id');
+  }
+
+  public function getRoleId(): ?int
   {
     if (!$this->relationLoaded('userRole')) {
       $this->load('userRole');
@@ -88,28 +93,20 @@ class User extends Authenticatable
     return $this->userRole?->role_id;
   }
 
-  public function isAdmin()
-  {
-    return $this->getRoleId() === 3;
-  }
+  public function isAdmin()           { return $this->getRoleId() === 3; }
+  public function isDean()            { return $this->getRoleId() === 1; }
+  public function isStaff()           { return $this->getRoleId() === 2; }
+  public function isStudentDirector() { return $this->getRoleId() === 4; }
+  public function isCampusDirector()  { return $this->getRoleId() === 5; }
+  public function isVPAA()            { return $this->getRoleId() === 6; }
+  public function isVPSAS()           { return $this->getRoleId() === 7; }
+  public function isVPAF()            { return $this->getRoleId() === 8; }
+  public function isVPRDE()           { return $this->getRoleId() === 9; }
+  public function isHeadOfOffice()        { return $this->getRoleId() === 10; }
+  public function isMultimedia()          { return $this->getRoleId() === 11; }
+  public function isUniversityPresident() { return $this->getRoleId() === 12; }
+  public function canReserve()            { return in_array($this->getRoleId(), [1, 5, 10, 12]); }
 
-  public function isDean()
-  {
-    return $this->getRoleId() === 1;
-  }
-
-  public function isStaff()
-  {
-    return $this->getRoleId() === 2;
-  }
-
-  public function canViewAllOffices()
-  {
-    return $this->isAdmin();
-  }
-
-  public function canViewAllAssets()
-  {
-    return $this->isAdmin();
-  }
+  public function canViewAllOffices() { return $this->isAdmin(); }
+  public function canViewAllAssets()  { return true; }
 }
