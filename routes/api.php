@@ -26,6 +26,7 @@ Route::post('resend-verification', [EmailVerificationController::class, 'resend'
   ->middleware('throttle:5,1');
 Route::get('campuses/all', [CampusesController::class, 'index']);
 Route::get('offices/all', [OfficesController::class, 'listAllOffices']);
+Route::get('degreeCourse/all', [DegreeCoursesController::class, 'index']);
 Route::get('degreeCourse/{id}', [DegreeCoursesController::class, 'show']);
 // Route::get('assets/all', [AssetsController::class, 'index']);
 Route::get('reservations/all', [ReservationController::class, 'index']);
@@ -42,9 +43,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
   // Event Reservation
   Route::post('event/reservation', [ReservationController::class, 'store']);
+  Route::get('reservations/internal', [ReservationController::class, 'accountIndex']);
   Route::get('reservations/queue', [ReservationController::class, 'queue']);
   Route::get('reservations/{id}', [ReservationController::class, 'show']);
   Route::put('reservations/{reservation}', [ReservationController::class, 'update']);
+  Route::put('reservations/{reservation}/equipment', [ReservationController::class, 'updateEquipment']);
   Route::put('reservations/{reservation}/multimedia-comment', [ReservationController::class, 'updateMultimediaComment']);
   Route::put('reservations/{reservation}/move', [ReservationController::class, 'move']);
   Route::post('reservations/{reservation}/resubmit', [ReservationController::class, 'resubmit']);

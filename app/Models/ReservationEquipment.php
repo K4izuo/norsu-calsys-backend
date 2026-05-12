@@ -12,6 +12,7 @@ class ReservationEquipment extends Model
         'reservation_id',
         'name',
         'quantity',
+        'note',
     ];
 
     public function reservation()

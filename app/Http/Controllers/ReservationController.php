@@ -27,30 +27,12 @@ class ReservationController extends Controller
 {
   public function index()
   {
-    return response()->json(
-      Reservation::with([
-        'reservedByUser:id,first_name,last_name',
-        'approvedByUser:id,first_name,last_name',
-        'declinedByUser:id,first_name,last_name',
-        'latestStatus:id,reservation_id,move_reason',
-        'equipment:id,reservation_id,name,quantity',
-        'guests:id,reservation_id,name,details',
-        'approvals:id,reservation_id,stage,user_id,action,reason,created_at',
-        'approvals.user:id,first_name,last_name',
-      ])
-        ->select(
-          'id', 'title_name', 'asset_id', 'range', 'time_start', 'time_end',
-          'description', 'people_tag', 'info_type', 'category', 'other_category',
-          'outsource', 'date', 'original_date', 'reserved_by_user', 'approved_by_user',
-          'declined_by_user', 'status', 'is_moved', 'involves_students', 'requires_vpaa',
-          'requires_vpsas', 'requires_vpaf', 'requires_vprde', 'current_stage',
-          'declined_at_stage', 'campus_director_action', 'multimedia_comment',
-          'requestor_type', 'student_sub_type', 'student_org_name', 'csg_name',
-          'requestor_tagged', 'proof_of_request', 'proof_of_approval',
-          'created_at', 'updated_at'
-        )
-        ->get()
-    );
+    return response()->json($this->reservationsIndexQuery(false)->get());
+  }
+
+  public function accountIndex()
+  {
+    return response()->json($this->reservationsIndexQuery(true)->get());
   }
 
   public function store(Request $request)
@@ -561,7 +543,7 @@ class ReservationController extends Controller
       'reservedByUser:id,first_name,last_name',
       'approvedByUser:id,first_name,last_name',
       'declinedByUser:id,first_name,last_name',
-      'equipment:id,reservation_id,name,quantity',
+      'equipment:id,reservation_id,name,quantity,note',
       'guests:id,reservation_id,name,details',
       'latestStatus:id,reservation_id,move_reason',
       'approvals:id,reservation_id,stage,user_id,action,reason,created_at',
@@ -587,6 +569,64 @@ class ReservationController extends Controller
     }
 
     return response()->json($query->get());
+  }
+
+  public function updateEquipment(Request $request, Reservation $reservation)
+  {
+    $user = $request->user();
+
+    if (!$user?->isMultimedia()) {
+      return response()->json(['message' => 'Only multimedia accounts can update equipment.'], 403);
+    }
+
+    if ($reservation->status !== 'PENDING') {
+      return response()->json(['message' => 'Equipment can only be updated while the reservation is pending.'], 422);
+    }
+
+    $fields = $request->validate([
+      'multimedia_comment'  => 'nullable|string|max:2000',
+      'equipment'           => 'present|array',
+      'equipment.*.id'      => 'required|integer|exists:reservation_equipment,id',
+      'equipment.*.quantity' => 'required|integer|min:1',
+      'equipment.*.note'    => 'nullable|string|max:1000',
+    ]);
+
+    $currentEquipment = $reservation->equipment()->get()->keyBy('id');
+    $currentIds = $currentEquipment->keys()->sort()->values()->all();
+    $submittedIds = collect($fields['equipment'])->pluck('id')->sort()->values()->all();
+
+    if ($currentIds !== $submittedIds) {
+      return response()->json(['message' => 'Only existing equipment items can be edited.'], 422);
+    }
+
+    DB::transaction(function () use ($reservation, $fields, $currentEquipment, $request) {
+      if ($request->has('multimedia_comment')) {
+        $reservation->update(['multimedia_comment' => $fields['multimedia_comment'] ?? null]);
+      }
+
+      foreach ($fields['equipment'] as $item) {
+        $currentEquipment[(int) $item['id']]->update([
+          'quantity' => $item['quantity'],
+          'note'     => $item['note'] ?? null,
+        ]);
+      }
+    });
+
+    $reservation->refresh()->load([
+      'reservedByUser:id,first_name,last_name',
+      'approvedByUser:id,first_name,last_name',
+      'declinedByUser:id,first_name,last_name',
+      'latestStatus:id,reservation_id,move_reason',
+      'equipment:id,reservation_id,name,quantity,note',
+      'guests:id,reservation_id,name,details',
+      'approvals:id,reservation_id,stage,user_id,action,reason,created_at',
+      'approvals.user:id,first_name,last_name',
+    ]);
+
+    return response()->json([
+      'reservation' => $reservation,
+      'message' => 'Equipment updated successfully',
+    ]);
   }
 
   public function move(Request $request, Reservation $reservation)
@@ -670,6 +710,16 @@ class ReservationController extends Controller
 
   public function updateMultimediaComment(Request $request, Reservation $reservation)
   {
+    $user = $request->user();
+
+    if (!$user?->isMultimedia()) {
+      return response()->json(['message' => 'Only multimedia accounts can update equipment remarks.'], 403);
+    }
+
+    if ($reservation->status !== 'PENDING') {
+      return response()->json(['message' => 'Equipment remarks can only be updated while the reservation is pending.'], 422);
+    }
+
     $fields = $request->validate(['multimedia_comment' => 'nullable|string|max:2000']);
     $reservation->update(['multimedia_comment' => $fields['multimedia_comment']]);
     return response()->json(['message' => 'Comment saved']);
@@ -681,6 +731,38 @@ class ReservationController extends Controller
   }
 
   // ── Private helpers ──────────────────────────────────────────────────────
+
+  private function reservationsIndexQuery(bool $includeInternalEquipmentNotes)
+  {
+    $columns = [
+      'id', 'title_name', 'asset_id', 'range', 'time_start', 'time_end',
+      'description', 'people_tag', 'info_type', 'category', 'other_category',
+      'outsource', 'date', 'original_date', 'reserved_by_user', 'approved_by_user',
+      'declined_by_user', 'status', 'is_moved', 'involves_students', 'requires_vpaa',
+      'requires_vpsas', 'requires_vpaf', 'requires_vprde', 'current_stage',
+      'declined_at_stage', 'campus_director_action',
+      'requestor_type', 'student_sub_type', 'student_org_name', 'csg_name',
+      'requestor_tagged', 'proof_of_request', 'proof_of_approval',
+      'created_at', 'updated_at',
+    ];
+
+    if ($includeInternalEquipmentNotes) {
+      $columns[] = 'multimedia_comment';
+    }
+
+    return Reservation::with([
+      'reservedByUser:id,first_name,last_name',
+      'approvedByUser:id,first_name,last_name',
+      'declinedByUser:id,first_name,last_name',
+      'latestStatus:id,reservation_id,move_reason',
+      $includeInternalEquipmentNotes
+        ? 'equipment:id,reservation_id,name,quantity,note'
+        : 'equipment:id,reservation_id,name,quantity',
+      'guests:id,reservation_id,name,details',
+      'approvals:id,reservation_id,stage,user_id,action,reason,created_at',
+      'approvals.user:id,first_name,last_name',
+    ])->select($columns);
+  }
 
   private function notifyStageApprovers(Reservation $reservation, string $stage): void
   {
