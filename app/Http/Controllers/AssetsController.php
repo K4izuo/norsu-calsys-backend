@@ -15,12 +15,6 @@ class AssetsController extends Controller
   {
     $user = $request->user();
 
-    if (!$user) {
-      return response()->json([
-        'message' => 'Unauthenticated'
-      ], 401);
-    }
-
     $query = Assets::query();
 
     if (!$user->canViewAllAssets()) {
@@ -50,12 +44,6 @@ class AssetsController extends Controller
   public function store(Request $request)
   {
     $user = $request->user();
-
-    if (!$user) {
-      return response()->json([
-        'message' => 'Unauthenticated'
-      ], 401);
-    }
 
     // Load the offices relationship
     $user->load('offices', 'userRole');
@@ -136,12 +124,6 @@ class AssetsController extends Controller
   {
     $user = $request->user();
 
-    if (!$user) {
-      return response()->json([
-        'message' => 'Unauthenticated'
-      ], 401);
-    }
-
     $asset = Assets::findOrFail($id);
 
     if (!$user->canViewAllAssets() && $asset->created_by !== $user->id) {
@@ -159,12 +141,6 @@ class AssetsController extends Controller
   public function update(Request $request, $id)
   {
     $user = $request->user();
-
-    if (!$user) {
-      return response()->json([
-        'message' => 'Unauthenticated'
-      ], 401);
-    }
 
     $asset = Assets::findOrFail($id);
 
@@ -197,12 +173,6 @@ class AssetsController extends Controller
   public function destroy(Request $request, $id)
   {
     $user = $request->user();
-
-    if (!$user) {
-      return response()->json([
-        'message' => 'Unauthenticated'
-      ], 401);
-    }
 
     $asset = Assets::findOrFail($id);
 

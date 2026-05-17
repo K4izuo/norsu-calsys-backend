@@ -75,7 +75,6 @@ class UsersController extends Controller
       ], 400);
     }
 
-    // --- START TRANSACTION ---
     $user = DB::transaction(function () use ($validated, $roleId) {
       $user = User::create([
         'first_name' => $validated['first_name'],
@@ -99,17 +98,14 @@ class UsersController extends Controller
         'office_id' => $validated['office_id'],
       ]);
 
+      DB::table('email_verifications')->insert([
+        'user_id'    => $user->id,
+        'token'      => Str::random(64),
+        'created_at' => now(),
+      ]);
+
       return $user;
     });
-    // --- END TRANSACTION ---
-
-    // Create verification token (kept for later use)
-    $token = Str::random(64);
-    DB::table('email_verifications')->insert([
-      'user_id'    => $user->id,
-      'token'      => $token,
-      'created_at' => now(),
-    ]);
 
     // NOTE: SMTP/email sending removed per request.
     // You can add mail sending later where appropriate.

@@ -73,21 +73,9 @@ class EmailVerificationController extends Controller
             'created_at' => now(),
         ]);
 
-        $verifyUrl = "https://your-frontend-domain.com/verify-email?token={$token}";
+        $verifyUrl = rtrim(config('app.frontend_url'), '/') . "/verify-email?token={$token}";
 
-        $htmlBody = "
-            <h2>Hello {$user->first_name} 👋</h2>
-            <p>Please verify your email by clicking the link below:</p>
-            <p><a href='{$verifyUrl}' style='color:#16a34a;font-weight:bold;'>Verify Email</a></p>
-        ";
-
-        // Use your PHPMailer service
-        // \App\Services\MailService::send(
-        //     $user->email,
-        //     'Resend Email Verification - NORSU Calendar System',
-        //     $htmlBody,
-        //     $user->first_name
-        // );
+        // TODO: send $verifyUrl via MailService once implemented
 
         return response()->json(['message' => 'Verification email resent successfully.'], 200);
     }

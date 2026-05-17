@@ -124,23 +124,22 @@ class DashboardController extends Controller
 
     private function weeklySparkline(object $model, string $column, int $weeks): array
     {
-        $results = [];
-        for ($i = $weeks - 1; $i >= 0; $i--) {
-            $start     = now()->subWeeks($i + 1)->startOfWeek();
-            $end       = now()->subWeeks($i)->endOfWeek();
-            $results[] = $model->newQuery()->whereBetween($column, [$start, $end])->count();
-        }
-        return $results;
+        return $this->weeklySparklineFiltered($model->newQuery(), $column, $weeks);
     }
 
     private function weeklySparklineFiltered($query, string $column, int $weeks): array
     {
-        $results = [];
-        for ($i = $weeks - 1; $i >= 0; $i--) {
-            $start     = now()->subWeeks($i + 1)->startOfWeek();
-            $end       = now()->subWeeks($i)->endOfWeek();
-            $results[] = (clone $query)->whereBetween($column, [$start, $end])->count();
-        }
-        return $results;
+        $start = now()->subWeeks($weeks)->startOfWeek();
+
+        $counts = (clone $query)
+            ->selectRaw("YEARWEEK({$column}, 3) as wk, COUNT(*) as total")
+            ->where($column, '>=', $start)
+            ->groupBy('wk')
+            ->pluck('total', 'wk');
+
+        return collect(range($weeks - 1, 0))
+            ->map(fn($i) => (int) ($counts[now()->subWeeks($i)->startOfWeek()->format('oW')] ?? 0))
+            ->values()
+            ->all();
     }
 }

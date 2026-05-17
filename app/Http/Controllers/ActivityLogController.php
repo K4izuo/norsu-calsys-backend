@@ -24,6 +24,8 @@ class ActivityLogController extends Controller
         $reservations = Reservation::where('reserved_by_user', $userId)
             ->with('asset:id,asset_name')
             ->select('id', 'title_name', 'asset_id', 'created_at')
+            ->latest()
+            ->limit(100)
             ->get();
 
         foreach ($reservations as $reservation) {
@@ -39,6 +41,8 @@ class ActivityLogController extends Controller
 
         $approvals = ReservationApproval::where('user_id', $userId)
             ->with('reservation:id,title_name,asset_id', 'reservation.asset:id,asset_name')
+            ->latest()
+            ->limit(100)
             ->get();
 
         foreach ($approvals as $approval) {
@@ -70,6 +74,8 @@ class ActivityLogController extends Controller
 
         $moves = ReservationStatus::where('moved_by_user', $userId)
             ->with('reservation:id,title_name,asset_id', 'reservation.asset:id,asset_name')
+            ->latest()
+            ->limit(100)
             ->get();
 
         foreach ($moves as $move) {

@@ -18,31 +18,39 @@ use App\Http\Controllers\{
   DashboardController
 };
 
-// Public routes
-Route::post('users/login', [AuthController::class, 'login']);
-Route::post('users/store', [UsersController::class, 'store']);
-Route::get('verify-email', [EmailVerificationController::class, 'verify']);
+// Public routes — auth-sensitive (tight limits)
+Route::post('users/login', [AuthController::class, 'login'])
+  ->middleware('throttle:10,1');
+Route::post('users/store', [UsersController::class, 'store'])
+  ->middleware('throttle:5,1');
+Route::get('verify-email', [EmailVerificationController::class, 'verify'])
+  ->middleware('throttle:10,1');
 Route::post('resend-verification', [EmailVerificationController::class, 'resend'])
   ->middleware('throttle:5,1');
-Route::get('campuses/all', [CampusesController::class, 'index']);
-Route::get('offices/all', [OfficesController::class, 'listAllOffices']);
-Route::get('degreeCourse/all', [DegreeCoursesController::class, 'index']);
-Route::get('degreeCourse/{id}', [DegreeCoursesController::class, 'show']);
-// Route::get('assets/all', [AssetsController::class, 'index']);
-Route::get('reservations/all', [ReservationController::class, 'index']);
-Route::get('reservations/assets/{id}', [ReservationController::class, 'show']);
-Route::get('users/{id}', [UsersController::class, 'show'])->where('id', '[0-9]+');
 
+// Public routes — general read-only (60/min per IP)
+Route::middleware('throttle:60,1')->group(function () {
+  Route::get('campuses/all', [CampusesController::class, 'index']);
+  Route::get('offices/all', [OfficesController::class, 'listAllOffices']);
+  Route::get('degreeCourse/all', [DegreeCoursesController::class, 'index']);
+  Route::get('degreeCourse/{id}', [DegreeCoursesController::class, 'show']);
+  Route::get('reservations/all', [ReservationController::class, 'index']);
+  Route::get('reservations/assets/{id}', [ReservationController::class, 'show']);
+  Route::get('users/{id}', [UsersController::class, 'show'])->where('id', '[0-9]+');
+});
 
-// Protected routes
-Route::middleware('auth:sanctum')->group(function () {
+// Protected routes — 120/min per user (keyed by user ID via named 'api' limiter)
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
   // Auth
   Route::post('logout', [AuthController::class, 'logout']);
   Route::get('me', [AuthController::class, 'me']);
-  Route::put('update-password', [AuthController::class, 'updatePassword']);
+  Route::put('update-password', [AuthController::class, 'updatePassword'])
+    ->middleware('throttle:5,1');
+  Route::post('/update-token-expiration', [AuthController::class, 'updateTokenExpiration']);
 
-  // Event Reservation
-  Route::post('event/reservation', [ReservationController::class, 'store']);
+  // Reservations
+  Route::post('event/reservation', [ReservationController::class, 'store'])
+    ->middleware('throttle:20,1');
   Route::get('reservations/internal', [ReservationController::class, 'accountIndex']);
   Route::get('reservations/queue', [ReservationController::class, 'queue']);
   Route::get('reservations/{id}', [ReservationController::class, 'show']);
@@ -57,15 +65,12 @@ Route::middleware('auth:sanctum')->group(function () {
   Route::put('users/{id}', [UsersController::class, 'update'])->where('id', '[0-9]+');
   Route::delete('users/{id}', [UsersController::class, 'destroy'])->where('id', '[0-9]+');
 
-  // Assets - Move this here
+  // Assets
   Route::get('assets/all', [AssetsController::class, 'index']);
   Route::post('assets/store', [AssetsController::class, 'store']);
   Route::get('assets/{id}', [AssetsController::class, 'show']);
   Route::put('assets/{id}', [AssetsController::class, 'update']);
   Route::delete('assets/{id}', [AssetsController::class, 'destroy']);
-  // Route::get('offices/all', [OfficesController::class, 'index']);
-
-  Route::post('/update-token-expiration', [AuthController::class, 'updateTokenExpiration']);
 
   // People
   Route::get('people', [PeopleController::class, 'index']);
@@ -81,9 +86,10 @@ Route::middleware('auth:sanctum')->group(function () {
   Route::put('notifications/mark-all-read', [NotificationsController::class, 'markAllRead']);
 
   // Activity Logs
-  Route::get('activity-logs', [ActivityLogController::class, 'index']);
+  Route::get('activity-logs', [ActivityLogController::class, 'index'])
+    ->middleware('throttle:30,1');
 
   // Dashboard
-  Route::get('dashboard/stats', [DashboardController::class, 'stats']);
-
+  Route::get('dashboard/stats', [DashboardController::class, 'stats'])
+    ->middleware('throttle:30,1');
 });
