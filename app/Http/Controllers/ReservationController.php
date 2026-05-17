@@ -207,6 +207,13 @@ class ReservationController extends Controller
       $reason = $fields['reason'] ?? null;
       $stage  = $reservation->current_stage;
 
+      // current_stage should never be a VP sub-stage name — only 'vp_approval'.
+      // Correct stale records in-place so the approval flow proceeds normally.
+      if (in_array($stage, ['vpaa', 'vpsas', 'vpaf', 'vprde'])) {
+        $reservation->update(['current_stage' => 'vp_approval']);
+        $stage = 'vp_approval';
+      }
+
       if ($action === 'DECLINED') {
         $approver        = User::find($userId);
         $declinedAtStage = $stage;
