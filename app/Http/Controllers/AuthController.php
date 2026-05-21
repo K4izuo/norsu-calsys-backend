@@ -6,13 +6,12 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\UserRoles;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
 
 class AuthController extends Controller
 {
-  private const TOKEN_EXPIRY_MINUTES = 15;
-
   public function login(Request $request)
   {
     $fields = $request->validate([
@@ -46,12 +45,12 @@ class AuthController extends Controller
       ]);
     }
 
-    // Create token
-    $expiresAt = Carbon::now()->addMinutes(self::TOKEN_EXPIRY_MINUTES);
-    $token = $user->createToken('auth-token', ['*'], $expiresAt)->plainTextToken;
+    // Establish a session (SPA cookie auth) and rotate the session ID
+    // to defend against session fixation.
+    Auth::guard('web')->login($user);
+    $request->session()->regenerate();
 
     return response()->json([
-      'token' => $token,
       'role' => $userRole->role_id,
       'user' => [
         'id' => $user->id,
@@ -60,19 +59,35 @@ class AuthController extends Controller
         'first_name' => $user->first_name ?? '',
         'last_name' => $user->last_name ?? '',
       ],
-      'expires_at' => $expiresAt->toIso8601String(),
+      'expires_at' => $this->sessionExpiresAt(),
     ], 200);
   }
 
   public function logout(Request $request)
   {
-    $request->user()->currentAccessToken()->delete();
+    Auth::guard('web')->logout();
+
+    // Only touch the session when one is actually bound to the request
+    // (stateful SPA call). Non-stateful callers — e.g. a one-off API
+    // probe — should not crash logout just because there is no session.
+    if ($request->hasSession()) {
+      $request->session()->invalidate();
+      $request->session()->regenerateToken();
+    }
+
     return response()->json(['message' => 'Logged out successfully'], 200);
   }
 
   public function logoutAll(Request $request)
   {
-    $request->user()->tokens()->delete();
+    // SPA mode: a single browser holds one session; treat this as a regular logout.
+    Auth::guard('web')->logout();
+
+    if ($request->hasSession()) {
+      $request->session()->invalidate();
+      $request->session()->regenerateToken();
+    }
+
     return response()->json(['message' => 'Logged out from all devices successfully'], 200);
   }
 
@@ -90,50 +105,26 @@ class AuthController extends Controller
         'last_name' => $user->last_name ?? '',
       ],
       'role' => $userRole ? $userRole->role_id : null,
+      'expires_at' => $this->sessionExpiresAt(),
     ], 200);
   }
 
-  private function errorResponse(string $message, array $errors)
-  {
-    return response()->json([
-      'message' => $message,
-      'errors' => $errors
-    ], 422);
-  }
-
+  /**
+   * Touch the current session: rotates the session ID and reports a fresh expiry.
+   *
+   * Deprecated alias for the legacy /update-token-expiration endpoint, which
+   * existed to refresh a 15-minute personal access token. SPA sessions
+   * already roll forward automatically on each authenticated request; this
+   * endpoint stays as a no-op session touch so the frontend's idle-timeout
+   * UI keeps working during the cutover window.
+   */
   public function updateTokenExpiration(Request $request)
   {
-    $fields = $request->validate([
-      'token' => 'required|string',
-    ]);
-
-    // Extract the plain token from Bearer format if present
-    $token = str_replace('Bearer ', '', $fields['token']);
-
-    // Find the token in personal_access_tokens table
-    $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
-
-    if (!$accessToken) {
-      return response()->json([
-        'message' => 'Invalid token',
-      ], 401);
-    }
-
-    // Check if token has expired
-    if ($accessToken->expires_at && $accessToken->expires_at->isPast()) {
-      return response()->json([
-        'message' => 'Token has expired',
-      ], 401);
-    }
-
-    // Update expiration time (15 minutes from now)
-    $newExpiresAt = Carbon::now()->addMinutes(self::TOKEN_EXPIRY_MINUTES);
-    $accessToken->expires_at = $newExpiresAt;
-    $accessToken->save();
+    $request->session()->migrate(true);
 
     return response()->json([
-      'message' => 'Token expiration updated successfully',
-      'expires_at' => $newExpiresAt->toIso8601String(),
+      'message' => 'Session refreshed.',
+      'expires_at' => $this->sessionExpiresAt(),
     ], 200);
   }
 
@@ -163,5 +154,20 @@ class AuthController extends Controller
     return response()->json([
       'message' => 'Password updated successfully.'
     ], 200);
+  }
+
+  private function errorResponse(string $message, array $errors)
+  {
+    return response()->json([
+      'message' => $message,
+      'errors' => $errors
+    ], 422);
+  }
+
+  private function sessionExpiresAt(): string
+  {
+    return Carbon::now()
+      ->addMinutes((int) config('session.lifetime'))
+      ->toIso8601String();
   }
 }

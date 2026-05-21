@@ -7,7 +7,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        $isMysql = DB::getDriverName() === 'mysql';
+
+        if ($isMysql) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        }
 
         // Step 1: Move existing user_roles to temp values to avoid conflicts
         DB::table('user_roles')->where('role_id', 2)->update(['role_id' => 11]); // dean temp
@@ -27,12 +31,18 @@ return new class extends Migration
         // Step 4: Remove obsolete roles (old ADMIN=4, old SUPER ADMIN=5)
         DB::table('roles')->whereIn('id', [4, 5])->delete();
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        if ($isMysql) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        }
     }
 
     public function down(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        $isMysql = DB::getDriverName() === 'mysql';
+
+        if ($isMysql) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        }
 
         // Restore roles table
         DB::table('roles')->where('id', 1)->update(['role_name' => 'STUDENT']);
@@ -51,6 +61,8 @@ return new class extends Migration
         DB::table('user_roles')->where('role_id', 22)->update(['role_id' => 3]);
         DB::table('user_roles')->where('role_id', 33)->update(['role_id' => 4]);
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        if ($isMysql) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        }
     }
 };

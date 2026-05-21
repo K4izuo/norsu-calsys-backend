@@ -21,8 +21,6 @@ use App\Http\Controllers\{
 // Public routes — auth-sensitive (tight limits)
 Route::post('users/login', [AuthController::class, 'login'])
   ->middleware('throttle:10,1');
-Route::post('users/store', [UsersController::class, 'store'])
-  ->middleware('throttle:5,1');
 Route::get('verify-email', [EmailVerificationController::class, 'verify'])
   ->middleware('throttle:10,1');
 Route::post('resend-verification', [EmailVerificationController::class, 'resend'])
@@ -36,7 +34,6 @@ Route::middleware('throttle:60,1')->group(function () {
   Route::get('degreeCourse/{id}', [DegreeCoursesController::class, 'show']);
   Route::get('reservations/all', [ReservationController::class, 'index']);
   Route::get('reservations/assets/{id}', [ReservationController::class, 'show']);
-  Route::get('users/{id}', [UsersController::class, 'show'])->where('id', '[0-9]+');
 });
 
 // Protected routes — 120/min per user (keyed by user ID via named 'api' limiter)
@@ -46,7 +43,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
   Route::get('me', [AuthController::class, 'me']);
   Route::put('update-password', [AuthController::class, 'updatePassword'])
     ->middleware('throttle:5,1');
-  Route::post('/update-token-expiration', [AuthController::class, 'updateTokenExpiration']);
+  Route::post('session/touch', [AuthController::class, 'updateTokenExpiration']);
+  // Deprecated alias — kept for one deploy cycle so the frontend can roll over to /session/touch.
+  Route::post('update-token-expiration', [AuthController::class, 'updateTokenExpiration']);
 
   // Reservations
   Route::post('event/reservation', [ReservationController::class, 'store'])
@@ -54,23 +53,38 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
   Route::get('reservations/internal', [ReservationController::class, 'accountIndex']);
   Route::get('reservations/queue', [ReservationController::class, 'queue']);
   Route::get('reservations/{id}', [ReservationController::class, 'show']);
-  Route::put('reservations/{reservation}', [ReservationController::class, 'update']);
+  Route::put('reservations/{reservation}', [ReservationController::class, 'update'])
+    ->middleware('role:1,3,5,6,7,8,9,10,11,12');
   Route::put('reservations/{reservation}/equipment', [ReservationController::class, 'updateEquipment']);
   Route::put('reservations/{reservation}/multimedia-comment', [ReservationController::class, 'updateMultimediaComment']);
-  Route::put('reservations/{reservation}/move', [ReservationController::class, 'move']);
+  Route::put('reservations/{reservation}/move', [ReservationController::class, 'move'])
+    ->middleware('role:5,12');
   Route::post('reservations/{reservation}/resubmit', [ReservationController::class, 'resubmit']);
 
-  // Users
-  Route::get('users/all', [UsersController::class, 'index']);
-  Route::put('users/{id}', [UsersController::class, 'update'])->where('id', '[0-9]+');
-  Route::delete('users/{id}', [UsersController::class, 'destroy'])->where('id', '[0-9]+');
+  // Users (admin-only registration + management)
+  Route::post('users/store', [UsersController::class, 'store'])
+    ->middleware(['role:3', 'throttle:5,1']);
+  Route::get('users/all', [UsersController::class, 'index'])
+    ->middleware('role:3');
+  Route::get('users/{id}', [UsersController::class, 'show'])
+    ->where('id', '[0-9]+')
+    ->middleware('role:3');
+  Route::put('users/{id}', [UsersController::class, 'update'])
+    ->where('id', '[0-9]+')
+    ->middleware('role:3');
+  Route::delete('users/{id}', [UsersController::class, 'destroy'])
+    ->where('id', '[0-9]+')
+    ->middleware('role:3');
 
-  // Assets
+  // Assets (admin manages writes)
   Route::get('assets/all', [AssetsController::class, 'index']);
-  Route::post('assets/store', [AssetsController::class, 'store']);
+  Route::post('assets/store', [AssetsController::class, 'store'])
+    ->middleware('role:3');
   Route::get('assets/{id}', [AssetsController::class, 'show']);
-  Route::put('assets/{id}', [AssetsController::class, 'update']);
-  Route::delete('assets/{id}', [AssetsController::class, 'destroy']);
+  Route::put('assets/{id}', [AssetsController::class, 'update'])
+    ->middleware('role:3');
+  Route::delete('assets/{id}', [AssetsController::class, 'destroy'])
+    ->middleware('role:3');
 
   // People
   Route::get('people', [PeopleController::class, 'index']);
@@ -89,7 +103,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
   Route::get('activity-logs', [ActivityLogController::class, 'index'])
     ->middleware('throttle:30,1');
 
-  // Dashboard
+  // Dashboard (open to all authenticated users)
   Route::get('dashboard/stats', [DashboardController::class, 'stats'])
     ->middleware('throttle:30,1');
 });
