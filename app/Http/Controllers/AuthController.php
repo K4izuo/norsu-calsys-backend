@@ -8,10 +8,14 @@ use App\Models\UserRoles;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class AuthController extends Controller
 {
+  // Note: personal_access_tokens table retained empty in case a mobile/external
+  // consumer ever needs token mode. SPA frontend uses session cookies only.
+
   public function login(Request $request)
   {
     $fields = $request->validate([
@@ -23,6 +27,14 @@ class AuthController extends Controller
 
     // Username doesn't exist
     if (!$user) {
+      $this->logAuth('Login failed: unknown username', [
+        'event' => 'login.failure',
+        'username' => $fields['username'],
+        'ip' => $request->ip(),
+        'user_agent' => $request->userAgent(),
+        'reason' => 'invalid_username',
+      ]);
+
       return $this->errorResponse('The provided credentials are incorrect.', [
         'username' => ['The provided credentials are incorrect.'],
         'password' => ['The provided credentials are incorrect.']
@@ -31,6 +43,14 @@ class AuthController extends Controller
 
     // Password is incorrect
     if (!Hash::check($fields['password'], $user->password)) {
+      $this->logAuth('Login failed: wrong password', [
+        'event' => 'login.failure',
+        'username' => $user->username,
+        'ip' => $request->ip(),
+        'user_agent' => $request->userAgent(),
+        'reason' => 'invalid_password',
+      ]);
+
       return $this->errorResponse('Password is incorrect.', [
         'password' => ['Password is incorrect.']
       ]);
@@ -40,6 +60,14 @@ class AuthController extends Controller
     $userRole = UserRoles::where('user_id', $user->id)->first();
 
     if (!$userRole) {
+      $this->logAuth('Login failed: missing role', [
+        'event' => 'login.failure',
+        'username' => $user->username,
+        'ip' => $request->ip(),
+        'user_agent' => $request->userAgent(),
+        'reason' => 'no_role',
+      ]);
+
       return $this->errorResponse('User role not found.', [
         'username' => ['User role configuration is missing.']
       ]);
@@ -49,6 +77,14 @@ class AuthController extends Controller
     // to defend against session fixation.
     Auth::guard('web')->login($user);
     $request->session()->regenerate();
+
+    $this->logAuth('Login successful', [
+      'event' => 'login.success',
+      'user_id' => $user->id,
+      'username' => $user->username,
+      'ip' => $request->ip(),
+      'user_agent' => $request->userAgent(),
+    ]);
 
     return response()->json([
       'role' => $userRole->role_id,
@@ -65,6 +101,9 @@ class AuthController extends Controller
 
   public function logout(Request $request)
   {
+    // Capture identity BEFORE Auth::guard('web')->logout() nulls the user.
+    $userId = $request->user()?->id;
+
     Auth::guard('web')->logout();
 
     // Only touch the session when one is actually bound to the request
@@ -75,11 +114,19 @@ class AuthController extends Controller
       $request->session()->regenerateToken();
     }
 
+    $this->logAuth('User logged out', [
+      'event' => 'logout',
+      'user_id' => $userId,
+      'ip' => $request->ip(),
+    ]);
+
     return response()->json(['message' => 'Logged out successfully'], 200);
   }
 
   public function logoutAll(Request $request)
   {
+    $userId = $request->user()?->id;
+
     // SPA mode: a single browser holds one session; treat this as a regular logout.
     Auth::guard('web')->logout();
 
@@ -87,6 +134,12 @@ class AuthController extends Controller
       $request->session()->invalidate();
       $request->session()->regenerateToken();
     }
+
+    $this->logAuth('User logged out (all devices)', [
+      'event' => 'logout',
+      'user_id' => $userId,
+      'ip' => $request->ip(),
+    ]);
 
     return response()->json(['message' => 'Logged out from all devices successfully'], 200);
   }
@@ -110,18 +163,17 @@ class AuthController extends Controller
   }
 
   /**
-   * Touch the current session: rotates the session ID and reports a fresh expiry.
+   * Returns a fresh expires_at without rotating the session ID.
+   * Used by the frontend's idle-timeout UI.
    *
-   * Deprecated alias for the legacy /update-token-expiration endpoint, which
-   * existed to refresh a 15-minute personal access token. SPA sessions
-   * already roll forward automatically on each authenticated request; this
-   * endpoint stays as a no-op session touch so the frontend's idle-timeout
-   * UI keeps working during the cutover window.
+   * Laravel's StartSession middleware already updates the underlying session
+   * record's last_activity timestamp on every authenticated request, so this
+   * endpoint deliberately does no session writes of its own. Rotating the
+   * session ID here would race with concurrent SPA navigation and invalidate
+   * the cookie out from under in-flight requests.
    */
-  public function updateTokenExpiration(Request $request)
+  public function touchSession(Request $request)
   {
-    $request->session()->migrate(true);
-
     return response()->json([
       'message' => 'Session refreshed.',
       'expires_at' => $this->sessionExpiresAt(),
@@ -151,6 +203,12 @@ class AuthController extends Controller
     $user->password = Hash::make($fields['new_password']);
     $user->save();
 
+    $this->logAuth('Password changed', [
+      'event' => 'password.change',
+      'user_id' => $user->id,
+      'ip' => $request->ip(),
+    ]);
+
     return response()->json([
       'message' => 'Password updated successfully.'
     ], 200);
@@ -169,5 +227,14 @@ class AuthController extends Controller
     return Carbon::now()
       ->addMinutes((int) config('session.lifetime'))
       ->toIso8601String();
+  }
+
+  /**
+   * Write an audit entry to the dedicated 'auth' log channel.
+   * Never include password or password hash in $context.
+   */
+  private function logAuth(string $message, array $context): void
+  {
+    Log::channel('auth')->info($message, $context);
   }
 }

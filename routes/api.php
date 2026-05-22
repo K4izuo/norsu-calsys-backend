@@ -43,9 +43,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
   Route::get('me', [AuthController::class, 'me']);
   Route::put('update-password', [AuthController::class, 'updatePassword'])
     ->middleware('throttle:5,1');
-  Route::post('session/touch', [AuthController::class, 'updateTokenExpiration']);
-  // Deprecated alias — kept for one deploy cycle so the frontend can roll over to /session/touch.
-  Route::post('update-token-expiration', [AuthController::class, 'updateTokenExpiration']);
+  Route::post('session/touch', [AuthController::class, 'touchSession']);
 
   // Reservations
   Route::post('event/reservation', [ReservationController::class, 'store'])
